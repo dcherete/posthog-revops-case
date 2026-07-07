@@ -1,52 +1,35 @@
-Hi, Ben! or someone who is reading.
+# PostHog RevOps Field Study
 
-The goal of this document is my hiring.
+This is an analysis of PostHog's sales-led revenue engine, built from public sources before applying to the [Revenue Ops Manager (sales focused)](https://posthog.com/careers/revenue-ops-manager-(sales-focused)) role.
 
-Firstly, I want to introduce myself. I'm David, I'm 29 years old and actually I'm a CRM Tech Lead at Brasil Paralelo, a Brazilian subscription content platform with more than 1.4M subscribers in their history and 6.2M leads at its base. I love working with data.
+**If you only read one thing, read the [Monthly Growth Review mock](deliverables/01-monthly-growth-review/).** It's the closest thing to the actual work product this role ships every month.
 
-The reason for this approach is because I believe that I'm the right person to be your Revenue Ops Manager. To prove that, I'm doing a case study about the challenges of the position, studying PostHog's revenue model using only public sources, mapping the real operational problems behind the job description, and showing how I would approach each one.
+## Why this exists
 
-I know this isn't the conventional approach, which is exactly why I hope you're still reading.
+I want this role. Rather than telling you I can do the job, I decided to do a version of it in public: reconstruct how PostHog generates and expands revenue, model the compensation machine, and design the monitoring layer. All of it using only the handbook, pricing pages, public team data, and disclosed financials.
 
----
+Everything here runs on synthetic data calibrated to PostHog's public anchors. Any number that isn't publicly sourced is declared in [ASSUMPTIONS.md](ASSUMPTIONS.md), with the reasoning behind the estimate and a note on how much the conclusions depend on it.
 
-## CV
+## Deliverables
 
-- [Curriculum vitae](link)
+1. **[Monthly Growth Review mock](deliverables/01-monthly-growth-review/)**: the memo I would ship in month one. Gainers and losers, new vs. expansion revenue, leading indicators, and one decision recommendation. Includes the SQL that generates it.
+2. **[Alerting spec](deliverables/02-alerting-spec/)**: a trigger catalog for proactive revenue monitoring. Each trigger defines signal, threshold, owner, recommended action, delivery channel, and false-positive control. With executable detection queries.
+3. **[Compensation model](deliverables/03-compensation-model/)**: rep-level cost as a function of attainment, team-level scenarios at 80/100/120/150% attainment, sensitivity analysis, and a maturity curve of OTE cost over time.
+4. **[ICP score validation](deliverables/04-icp-validation/)**: an experiment design to test whether the ICP score actually tracks revenue outcomes, and what to change if it doesn't.
+5. **[Attribution & NRR](deliverables/05-attribution-and-nrr/)**: how demand splits between self-serve and sales-led, where attribution between product and rep breaks down, and a methodology for decomposing the deltas in NRR.
 
----
+## How to navigate
 
-## Structure
+The `data/` folder holds the synthetic CRM schema and its generator, calibrated to public anchors: disclosed ARR milestones, public pricing rates, team-page headcount, the salary calculator, and the revenue accounting conventions documented in PostHog's own handbook. The `models/` folder contains layered SQL (staging to marts), dbt-style. Research notes and the original study plan live in `context/`.
 
-Each folder corresponds to a phase of the study, built sequentially. The analysis in later folders depends on the context established in earlier ones.
+The commit history is the methodology. Each commit reflects a real study session.
 
-- `00.the-plan` - the logical sequence of study phases and the reasoning behind the approach
-- `01.products-and-sales-model` — what PostHog sells and how each product is sold
-- `02.marketing-and-demand` — how demand is generated intentionally and organically
-- `03.self-serve-vs-sales-led` — how demand splits between the two motions
-- `04.sales-funnel` — lead origins, qualification criteria, routing logic, handoffs
-- `05.sales-structure` — TAE, TAM, CSM, BDR roles and how each operates
-- `06.icp-scoring` — how the 70-point model works and whether it predicts revenue
-- `07.compensation` — OTE structure, quota logic, commission mechanics per role
-- `08.revenue-modeling` — quota estimates, commission scenarios, sensitivity analysis
-- `09.core-challenges` — the five operational problems that emerge from this understanding
-- `10.analysis-and-solutions` — analytical framework and proposed solution for each challenge
-- `11.deliverables` — README, abstract, LinkedIn outreach, formal application
+## About me
 
----
+I'm Davi, a Senior CRM Analyst with 4 years running CRM and revenue analytics at Brasil Paralelo, a Brazilian media and subscription company: a 6.2M-lead database, 800k active subscribers, 7 channels, R$64M in directly attributed CRM revenue, plus lead scoring models credited with another R$45.5M. Working stack: SQL, BigQuery, dbt, Python, Insider CDP. Statistics degree (UNESP).
+
+I'm based in Brazil (GMT-3), which gives me full overlap with GMT-5 working hours. For GMT-8 it means a 1pm to 9pm local schedule, and I'm glad to hold it.
 
 ## Status
 
-Work in progress. Commits reflect real study sessions, not a single generation. The history is the methodology.
-
----
-
-## Sources
-
-All information is drawn from PostHog's public handbook unless otherwise noted.
-
-- [RevOps overview](https://posthog.com/handbook/growth/revops/overview)
-- [New business — how we work](https://posthog.com/handbook/growth/sales/new-business-how-we-work)
-- [Compensation](https://posthog.com/handbook/people/compensation)
-- [Exec responsibilities](https://posthog.com/handbook/exec/responsibilities)
-- [Hiring process](https://posthog.com/handbook/people/hiring-process)
+Work in progress, deliberately public. Each deliverable ends with the open questions that would require internal data to resolve. Knowing what I can't know from the outside is part of the job.
