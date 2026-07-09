@@ -8,7 +8,7 @@ This is an analysis of PostHog's sales-led revenue engine, built from public sou
 
 I want this role. Rather than telling you I can do the job, I decided to do a version of it in public: reconstruct how PostHog generates and expands revenue, model the compensation machine, and design the monitoring layer. All of it using only the handbook, pricing pages, public team data, and disclosed financials.
 
-Everything here runs on synthetic data calibrated to PostHog's public anchors. Any number that isn't publicly sourced is declared in [ASSUMPTIONS.md](ASSUMPTIONS.md), with the reasoning behind the estimate and a note on how much the conclusions depend on it.
+Everything here runs on synthetic data calibrated to PostHog's public anchors. Any number that isn't publicly sourced is declared inline, with the reasoning behind the estimate and a note on how much the conclusions depend on it.
 
 ## Deliverables
 
@@ -20,7 +20,7 @@ Everything here runs on synthetic data calibrated to PostHog's public anchors. A
 
 ## How to navigate
 
-The `data/` folder holds the synthetic CRM schema and its generator, calibrated to public anchors: disclosed ARR milestones, public pricing rates, team-page headcount, the salary calculator, and the revenue accounting conventions documented in PostHog's own handbook. The `models/` folder contains layered SQL (staging to marts), dbt-style. Research notes and the original study plan live in `context/`.
+Each deliverable in `deliverables/` stands alone. The `context/` folder holds the research that feeds them: product structure, acquisition funnel, sales structure and compensation mechanics, and the study plan. Start with a deliverable, go to `context/` when you want to see where a number came from.
 
 The commit history is the methodology. Each commit reflects a real study session.
 
