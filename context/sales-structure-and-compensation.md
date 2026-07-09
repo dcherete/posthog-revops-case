@@ -136,7 +136,7 @@ Example: TAE with $200K OTE (50/50 split) and $1M annual quota earns $100K commi
 | OTE split | 50% base / 50% commission |
 | Quota basis | Additional usage ARR added to the book of business — invoiced usage growth, not contract value |
 | Quota cadence | Set annually, divided by 4 |
-| Commission structure | Uncapped, linear sliding scale — same mechanics as TAE. What differs: quota basis is usage ARR growth (not total invoiced value), and the cross-sell multiplier is applied to each invoice before it counts toward attainment — see below. |
+| Commission structure | Uncapped, linear sliding scale. 0% attainment = 0% commission. 100% = 100%. 200% = 200%. Cross-sell multiplier applied on top — see below. |
 | Ramp period | First 3 months: 100% OTE fixed. Expected to retain existing book and close at least one deal. |
 | Commission payout | Quarterly: end of January, April, July, October |
 
@@ -216,11 +216,74 @@ The 0.7x to 1.5x+ multiplier correctly rewards TAMs for multi-product adoption. 
 **5. Quota setting methodology is undocumented.**
 The handbook describes how commission is calculated once quota is set, but does not describe how quota is determined. What assumptions about deal size, win rate, and pipeline coverage go into the annual number? This is currently a judgment call made without a documented model — which makes it impossible to pressure-test or defend to the team.
 
+## ICP Score: What We Know, What We Don't, and What Needs Internal Validation
+
+### What we know (from the handbook)
+
+The lead score is calculated in Salesforce using Clearbit data. It ranges from 0 to 70 points across four dimensions: employee count, ability to pay (estimated revenue), role of the contact, and country.
+
+"the higher the score the higher value a potential contract with a customer should be." — [Lead routing and scoring](https://posthog.com/handbook/growth/sales/lead-scoring)
+
+The word "should" is the key signal — this is an assumption, not a validated correlation.
+
+There are two separate scores in Salesforce that serve different purposes. The lead score described above is sales-oriented and used to prioritize inbound leads. There is also a separate ICP score that is marketing-aligned, designed to measure whether PostHog is capturing the right type of customer as inbound leads. The two are distinct and should not be conflated.
+
+The demo booking threshold is a lead score of 20 or above, combined with matching 2 of 3 requirements for revenue, title, and industry. Accounts below 20 go to manual TAE review.
+
+The target conversion rate from scored leads is approximately 20%.
+
+**Score breakdown:**
+
+| Dimension | Value | Points |
+|---|---|---|
+| Employee count | 1 to 10 | 0 |
+| | 11 to 1,000 | 10 |
+| | 1,000+ | 20 |
+| Ability to pay (estimated revenue) | $0M to $1M | 0 |
+| | $1M to $10M | 5 |
+| | $10M to $100M | 10 |
+| | $100M+ | 20 |
+| Role | Engineering | 10 |
+| | Product | 10 |
+| | Leadership / Founder | 10 |
+| | Marketing | 5 |
+| | Other | 0 |
+| Sub-role | Software / Web / Project / Data Science engineer | 10 |
+| | Founder / CEO | 10 |
+| | Other | 0 |
+| Country (tier 1) | Austria, Canada, France, Germany, Japan, Norway, Sweden, UK, USA | 10 |
+| Country (tier 2) | Australia, Belgium, Estonia, Finland, Georgia, Guernsey, Netherlands, NZ, Poland, Portugal, Singapore | 5 |
+| Country (other) | All others | 0 |
+
+### What we don't know
+
+**Whether the score actually predicts revenue.** The handbook says it "should" correlate with contract value — but there is no documented validation against historical outcomes. A company with a score of 60 may not generate more ARR than a company with a score of 30. The weights and thresholds were set from experience, not from a model trained on conversion data.
+
+**Whether the weights are calibrated.** Employee count and ability to pay together can contribute up to 40 of the 70 points. Role and sub-role together can contribute up to 20. Country up to 10. This weighting implies firmographic size matters twice as much as who you are selling to — but this has not been validated against actual win rates by dimension.
+
+**Whether the score captures behavioral signals.** This absence is intentional — the lead score is designed for prospects who have not yet become customers, so no usage data is available at the time of scoring. Firmographic data via Clearbit is the only signal that exists at that stage. The real gap is different: there is no unified score that combines firmographic data with behavioral signals for accounts that are already paying but have not yet been assigned to a TAM. These accounts have rich usage data — products activated, event volume, MRR growth, Managed Warehouse connections — but none of it feeds into a scoring or prioritization model. The routing triggers (MRR thresholds, employee count, user count) are binary rules, not a scored model. A company paying $900/month with 3 products and 40 employees misses every threshold and never gets a TAM despite being a strong expansion candidate.
+
+**What the actual conversion rate is by score band.** The 20% target is a goal, not a measured outcome. There is no documented breakdown of conversion rate by score range (e.g. 0–20, 21–40, 41–60, 61–70).
+
+**Whether the ICP score and the lead score are correlated.** The two scores exist for different purposes but both influence how leads are handled. It is not documented whether high ICP score accounts also tend to have high lead scores, or whether the two scores surface different populations.
+
+### What would be needed internally to validate
+
+**Access to historical Salesforce data:** matched lead scores at time of creation against eventual ARR realized at 6 and 12 months. This is the minimum dataset required to test whether the score predicts revenue.
+
+**Win rate by score band:** percentage of leads in each score range that converted to an opportunity, and of those, what percentage closed and at what ARR.
+
+**Usage data at time of scoring:** product events, number of active products, and MRR at the time the lead score was calculated. This would allow testing whether behavioral signals add predictive power on top of firmographic signals.
+
+**A/B test or holdout design:** to measure whether leads routed to TAEs based on score actually convert at a higher rate than leads of similar profile that were not routed. This is the cleanest way to validate that the routing logic adds value beyond organic conversion.
+
+This validation is the core of the `04-icp-validation` deliverable.
+
 ## Sources
 
 - [New business how we work](https://posthog.com/handbook/growth/sales/new-business-how-we-work) — TAE and BDR: OTE split, ramp, clawback, performance floor, lead sources
 - [How we work (TAM)](https://posthog.com/handbook/growth/sales/how-we-work) — TAM: commission mechanics, cross-sell multiplier, book of business rules, team lead quota
 - [Product-led sales](https://posthog.com/handbook/growth/sales/product-led-sales) — product-led lead handling and book eligibility
 - [Expansion and retention](https://posthog.com/handbook/growth/sales/expansion-and-retention)
-- [Lead routing and scoring](https://posthog.com/handbook/growth/sales/lead-scoring) — TAM routing thresholds
+- [Lead routing and scoring](https://posthog.com/handbook/growth/sales/lead-scoring) — TAM routing thresholds, lead score model, ICP score distinction, 20% conversion target
 - [RevOps overview](https://posthog.com/handbook/growth/revops/overview)
