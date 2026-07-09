@@ -6,52 +6,55 @@ Commits tell the real story of progress. Check the git history.
 
 ---
 
-- [ ] 01 — Understand all PostHog products and how each one is sold
-  - [ ] What each product does
-  - [ ] Pricing model per product (usage-based, flat, freemium)
-  - [ ] Which products are self-serve only vs sales-assisted
-  - [ ] Upsell and cross-sell logic between products
+- [x] 01 — Understand all PostHog products and how each one is sold
+  - [x] What each product does
+  - [x] Pricing model per product (usage-based, flat, freemium)
+  - [x] Which products are self-serve only vs sales-assisted
+  - [x] Upsell and cross-sell logic between products
 
-- [ ] 02 — Understand how marketing generates demand
-  - [ ] Intentional channels: SEO, technical content, YouTube, developer community
-  - [ ] Role of Charles Cook and the Demand Gen team
-  - [ ] How marketing amplifies word-of-mouth without being the origin of it
+- [x] 02 — Understand how marketing generates demand
+  - [x] Intentional channels: SEO, technical content, YouTube, developer community
+  - [x] Role of Charles Cook and the Demand Gen team
+  - [x] How marketing amplifies word-of-mouth without being the origin of it
 
-- [ ] 03 — Understand how demand splits between self-serve and sales-led
-  - [ ] What triggers a self-serve conversion
-  - [ ] What triggers routing to a rep
-  - [ ] The blurred middle — accounts that pay self-serve but qualify for sales attention
-  - [ ] The organic PLG loop and its attribution implications
+- [x] 03 — Understand how demand splits between self-serve and sales-led
+  - [x] What triggers a self-serve conversion
+  - [x] What triggers routing to a rep
+  - [x] The blurred middle — accounts that pay self-serve but qualify for sales attention
+  - [x] The organic PLG loop and its attribution implications
 
-- [ ] 04 — Understand the sales funnel end to end
-  - [ ] Lead origins per channel
-  - [ ] Qualification criteria (BANT, ICP score thresholds)
-  - [ ] Routing logic between TAE, TAM, and CSM
-  - [ ] Handoff points and ownership transitions
+- [x] 04 — Understand the sales funnel end to end
+  - [x] Lead origins per channel
+  - [x] Qualification criteria (BANT, ICP score thresholds)
+  - [x] Routing logic between TAE, TAM, and CSM
+  - [x] Handoff points and ownership transitions
 
-> **Output 1 — `acquisition-and-upsell-funnel.md`**
-> How PostHog generates demand, how it splits between self-serve and sales-led, how each product fits the conversion and expansion funnel, and where the attribution problem between product and rep first appears.
+> **Context doc 1 — `products-and-sales-model.md`**
+> Product structure and pricing mechanics: 15 products, billing metrics, free tiers, and commercial triggers per product. Platform packages (Boost, Scale, Enterprise) and the expansion logic. Why the attribution problem is structural.
+
+> **Context doc 2 — `acquisition-funnel.md`**
+> How PostHog generates demand, how it splits between self-serve and sales-led, routing criteria per team (TAE, TAM, BDR), lead scoring model, funnel flows, handoff failure modes, and RevOps implications.
 
 ---
 
-- [ ] 05 — Understand sales structure — TAE, TAM, CSM, BDR
-  - [ ] Role definitions and lead sources per role
-  - [ ] Book of business logic per role
-  - [ ] Performance floors and ramp periods
+- [x] 05 — Understand sales structure — TAE, TAM, CSM, BDR
+  - [x] Role definitions and lead sources per role
+  - [x] Book of business logic per role
+  - [x] Performance floors and ramp periods
 
-- [ ] 06 — Understand ICP scoring model
-  - [ ] How the 70-point model is constructed in Salesforce
-  - [ ] What variables compose the score and their implied weights
+- [x] 06 — Understand ICP scoring model
+  - [x] How the 70-point model is constructed in Salesforce
+  - [x] What variables compose the score and their implied weights
   - [ ] Whether the score has been validated against actual revenue outcomes
 
-- [ ] 07 — Understand compensation structure
-  - [ ] OTE structure per role
-  - [ ] Quota setting logic
-  - [ ] Commission sliding scale and accelerators
-  - [ ] What counts and what doesn't toward quota
+- [x] 07 — Understand compensation structure
+  - [x] OTE structure per role
+  - [x] Quota setting logic
+  - [x] Commission sliding scale and accelerators
+  - [x] What counts and what doesn't toward quota
 
-> **Output 2 — `sales-structure-and-compensation.md`**
-> Org chart with role definitions, lead sources, and performance mechanics. Full compensation model per role. ICP score reconstruction from public sources with a proposed validation experiment design.
+> **Context doc 3 — `sales-structure-and-compensation.md`**
+> Account lifecycle and role definitions. Lead sources and book of business per role. Full compensation mechanics for TAE, TAM, BDR, and Team Lead. Cross-sell multiplier table. Five structural gaps in the current model mapped to RevOps deliverables.
 
 ---
 
@@ -75,5 +78,26 @@ Commits tell the real story of progress. Check the git history.
   - [ ] What data I would need internally to calibrate each solution
   - [ ] Open questions that require internal access to resolve
 
-> **Output 3 — `revenue-and-compensation-model.md`**
+> **Context doc 4 — `revenue-and-compensation-model.md`**
 > Three-layer projection model: (1) cost per rep as a function of attainment; (2) total team revenue and compensation cost given rep count and attainment mix; (3) maturity curve showing OTE cost evolution over time. Critical analysis of whether the current incentive structure is aligned with PLG revenue goals. Five analytical frameworks with proposed solutions and honest open questions for each challenge.
+
+---
+
+## Deliverables
+
+The five deliverables are the public-facing work product of this study. Each one is built on top of the context docs above.
+
+> **Deliverable 01 — Monthly Growth Review mock** (`deliverables/01-monthly-growth-review/`)
+> The memo I would ship in month one. Gainers and losers, new vs. expansion revenue, leading indicators, and one decision recommendation. Includes the SQL that generates it. Built on the acquisition funnel and sales structure context docs.
+
+> **Deliverable 02 — Alerting spec** (`deliverables/02-alerting-spec/`)
+> A trigger catalog for proactive revenue monitoring. Each trigger defines signal, threshold, owner, recommended action, delivery channel, and false-positive control. With executable detection queries. Directly addresses the pipeline leakage and underperformance detection gaps identified in the sales structure doc.
+
+> **Deliverable 03 — Compensation model** (`deliverables/03-compensation-model/`)
+> Rep-level cost as a function of attainment, team-level scenarios at 80/100/120/150% attainment, sensitivity analysis, and a maturity curve of OTE cost over time. Built on top of context doc 3 and context doc 4.
+
+> **Deliverable 04 — ICP score validation** (`deliverables/04-icp-validation/`)
+> An experiment design to test whether the ICP score actually tracks revenue outcomes, and what to change if it doesn't. Addresses the open question from task 06.
+
+> **Deliverable 05 — Attribution and NRR** (`deliverables/05-attribution-and-nrr/`)
+> How demand splits between self-serve and sales-led, where attribution between product and rep breaks down, and a methodology for decomposing the deltas in NRR.
