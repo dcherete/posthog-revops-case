@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compensation Operations: Before and After — PostHog RevOps Field Study</title>
+<style>
+  :root {
+    --bg: #13131a;
+    --surface: #1c1c27;
+    --surface-2: #22223a;
+    --border: #2a2a3d;
+    --border-accent: rgba(245,183,49,0.3);
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --accent: #f5b731;
+    --accent-dim: rgba(245,183,49,0.08);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.07);
+    --blue: #60a5fa;
+    --amber-dim: rgba(245,183,49,0.05);
+    --mono: 'SF Mono','Fira Code','Cascadia Code',monospace;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --sidebar-w: 220px;
+    --content-max: 740px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7fa; --surface: #ffffff; --surface-2: #f0f0f5;
+      --border: #dddde8; --border-accent: rgba(180,120,0,0.3);
+      --text: #1a1a2e; --muted: #8888a8; --accent: #c98a00;
+      --accent-dim: rgba(180,120,0,0.08); --green: #16a34a;
+      --green-dim: rgba(22,163,74,0.07); --blue: #2563eb;
+      --amber-dim: rgba(180,120,0,0.04);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f7fa; --surface: #ffffff; --surface-2: #f0f0f5;
+    --border: #dddde8; --border-accent: rgba(180,120,0,0.3);
+    --text: #1a1a2e; --muted: #8888a8; --accent: #c98a00;
+    --accent-dim: rgba(180,120,0,0.08); --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.07); --blue: #2563eb;
+    --amber-dim: rgba(180,120,0,0.04);
+  }
+  :root[data-theme="dark"] {
+    --bg: #13131a; --surface: #1c1c27; --surface-2: #22223a;
+    --border: #2a2a3d; --border-accent: rgba(245,183,49,0.3);
+    --text: #e8e8f0; --muted: #6b6b8a; --accent: #f5b731;
+    --accent-dim: rgba(245,183,49,0.08); --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.07); --blue: #60a5fa;
+    --amber-dim: rgba(245,183,49,0.05);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.7; }
+
+  /* Hero */
+  .hero { border-bottom: 1px solid var(--border); padding: 48px 40px 40px; max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; }
+  .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; letter-spacing: -.02em; }
+  .hero p { color: var(--muted); max-width: 600px; font-size: 14px; }
+  .hero p strong { color: var(--text); }
+
+  /* Layout */
+  .page-body { display: flex; max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; padding: 0 40px; gap: 48px; align-items: flex-start; }
+
+  /* Sidebar */
+  .sidebar { width: var(--sidebar-w); flex-shrink: 0; position: sticky; top: 32px; padding-top: 48px; padding-bottom: 80px; }
+  .sidebar-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar nav a { display: block; font-size: 12px; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; transition: color .15s, border-color .15s, background .15s; line-height: 1.4; }
+  .sidebar nav a:hover { color: var(--text); background: var(--surface); }
+  .sidebar nav a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .sidebar-meta { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .sidebar-meta a { color: var(--accent); text-decoration: none; }
+
+  /* Content */
+  .content { flex: 1; min-width: 0; padding-bottom: 80px; }
+  section { padding-top: 48px; }
+  h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 .tag { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px; }
+  .section-intro { color: var(--muted); margin-bottom: 24px; font-size: 13px; line-height: 1.7; }
+  .divider { border: none; border-top: 1px solid var(--border); margin-top: 48px; }
+
+  /* Context block */
+  .context-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px 28px; margin-top: 24px; }
+  .context-block p { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .context-block p + p { margin-top: 12px; }
+  .context-block strong { color: var(--text); }
+  .context-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 20px; }
+  .stat { background: var(--surface-2); padding: 14px 16px; }
+  .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* Comparison table */
+  .compare-wrapper { overflow-x: auto; margin-top: 24px; }
+  .compare-table { width: 100%; border-collapse: collapse; }
+  .compare-table thead th { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .compare-table thead th:first-child { color: var(--muted); width: 130px; }
+  .compare-table thead th:nth-child(2) { color: var(--blue); }
+  .compare-table thead th:nth-child(3) { color: var(--accent); }
+  .compare-table tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+  .compare-table tbody tr:hover { background: var(--surface); }
+  .compare-table tbody tr.open { background: var(--surface); }
+  .compare-table td { padding: 11px 12px; vertical-align: top; font-size: 12px; }
+  .compare-table td:first-child { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 13px; }
+  .compare-table td:not(:first-child) { border-left: 1px solid var(--border); }
+  .row-detail { display: none; }
+  .row-detail.visible { display: table-row; }
+  .row-detail td { background: var(--accent-dim); border-top: 1px solid var(--border-accent); font-size: 12px; color: var(--muted); line-height: 1.65; padding: 12px 12px; border-left: none !important; }
+
+  /* Problem cards */
+  .problem-list { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+  .problem-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); transition: border-color .2s; }
+  .problem-card:hover { border-color: var(--border-accent); }
+  .problem-header { display: flex; align-items: flex-start; gap: 16px; padding: 18px 20px; cursor: pointer; }
+  .problem-meta { flex: 1; }
+  .problem-label { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .problem-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .problem-teaser { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .problem-expand { font-size: 18px; color: var(--muted); transition: transform .2s, color .2s; flex-shrink: 0; margin-top: 2px; line-height: 1; }
+  .problem-card.open .problem-expand { transform: rotate(45deg); color: var(--accent); }
+  .problem-body { display: none; border-top: 1px solid var(--border); }
+  .problem-card.open .problem-body { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .problem-panel { padding: 20px 22px; }
+  .problem-panel + .problem-panel { border-left: 1px solid var(--border); }
+  .problem-panel.solution { background: var(--green-dim); }
+  .panel-label { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
+  .panel-label.bp { color: var(--blue); }
+  .panel-label.posthog { color: var(--accent); }
+  .panel-label.solution { color: var(--green); }
+  .panel-text { font-size: 12px; color: var(--muted); line-height: 1.75; }
+  .panel-text strong { color: var(--text); }
+  .panel-text p + p { margin-top: 10px; }
+
+  /* Gap cards */
+  .gap-list { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+  .gap-card { background: var(--amber-dim); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; cursor: pointer; transition: border-color .2s; }
+  .gap-card:hover { border-color: var(--border-accent); }
+  .gap-header { display: flex; align-items: center; gap: 12px; }
+  .gap-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+  .gap-icon { font-size: 16px; color: var(--muted); transition: transform .2s, color .2s; }
+  .gap-card.open .gap-icon { transform: rotate(45deg); color: var(--accent); }
+  .gap-detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.75; }
+  .gap-card.open .gap-detail { display: block; }
+
+  /* Summary */
+  .summary-block { background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 22px 26px; margin-top: 24px; }
+  .summary-block p { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .summary-block p + p { margin-top: 12px; }
+  .summary-block strong { color: var(--text); }
+
+  /* Footer */
+  footer { max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; padding: 24px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); flex-wrap: wrap; gap: 8px; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* Mobile */
+  @media (max-width: 760px) {
+    .hero { padding: 28px 20px 24px; }
+    .page-body { flex-direction: column; padding: 0 20px; gap: 0; }
+    .sidebar { width: 100%; position: static; padding-top: 24px; padding-bottom: 0; border-bottom: 1px solid var(--border); }
+    .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .sidebar nav a { border-left: none; border-bottom: 2px solid transparent; border-radius: 4px; padding: 4px 10px; font-size: 11px; }
+    .sidebar nav a.active { border-bottom-color: var(--accent); }
+    .sidebar-divider, .sidebar-meta { display: none; }
+    .sidebar-label { margin-bottom: 10px; }
+    .context-stats { grid-template-columns: 1fr 1fr; }
+    .problem-card.open .problem-body { grid-template-columns: 1fr; }
+    .problem-panel + .problem-panel { border-left: none; border-top: 1px solid var(--border); }
+    footer { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="eyebrow">PostHog RevOps Field Study — Deliverable 03</div>
+  <h1>Compensation Operations: Before and After</h1>
+  <p>Four compensation problems I solved at Brasil Paralelo, mapped to their equivalents at PostHog. This is not a claim that the contexts are identical. It is a demonstration that <strong>the operational thinking transfers.</strong></p>
+</div>
+
+<div class="page-body">
+
+  <aside class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <nav id="sideNav">
+      <a href="#context">The situation I inherited</a>
+      <a href="#parallel">The parallel</a>
+      <a href="#problems">The four problems</a>
+      <a href="#gaps">Honest gaps</a>
+      <a href="#summary">Summary</a>
+    </nav>
+    <hr class="sidebar-divider">
+    <div class="sidebar-meta">
+      Part of the <a href="https://github.com/dcherete/posthog-revops-case" target="_blank">PostHog RevOps field study</a>, built from public sources before applying for the Revenue Operations Manager role.
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- 0. CONTEXT -->
+    <section id="context">
+      <h2>The situation I inherited</h2>
+      <div class="context-block">
+        <p>When I joined Brasil Paralelo, the sales team had 22 reps and a commercial operation that was running on instinct and spreadsheets. There was a compensation model — tiered multipliers, reasonable structure — but no infrastructure to run it reliably at scale. Every month close was a 4-hour scramble to produce a number that should have been automatic.</p>
+        <p>Over the next two years, I built the data layer that turned that scramble into a system. The team grew to 40 reps. The model evolved from tiered multipliers to OTE. The infrastructure I built supported both without breaking. <strong>The four problems below are the specific things I had to solve to get there.</strong></p>
+        <div class="context-stats">
+          <div class="stat"><div class="stat-value">22→40</div><div class="stat-label">Sales reps during the period</div></div>
+          <div class="stat"><div class="stat-value">4h→1h</div><div class="stat-label">Monthly apuration time after rebuild</div></div>
+          <div class="stat"><div class="stat-value">30min</div><div class="stat-label">Attribution model refresh cycle in production</div></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 1. THE PARALLEL -->
+    <section id="parallel">
+      <h2>The parallel <span class="tag">Brasil Paralelo vs PostHog</span></h2>
+      <p class="section-intro">Two companies, two business models, the same operational gaps. Click any row to expand context.</p>
+      <div class="compare-wrapper">
+        <table class="compare-table">
+          <thead>
+            <tr><th></th><th>Brasil Paralelo</th><th>PostHog</th></tr>
+          </thead>
+          <tbody id="compareBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 2. FOUR PROBLEMS -->
+    <section id="problems">
+      <h2>The four problems <span class="tag">Click each to expand</span></h2>
+      <p class="section-intro">Each problem shows what existed, what I built, and the PostHog equivalent waiting to be solved.</p>
+      <div class="problem-list" id="problemList"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 3. GAPS -->
+    <section id="gaps">
+      <h2>What is different about PostHog <span class="tag">Honest gaps</span></h2>
+      <p class="section-intro">Honesty about the gaps matters more than a clean narrative. Three things are genuinely different and worth naming before any conversation about fit.</p>
+      <div class="gap-list" id="gapList"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 4. SUMMARY -->
+    <section id="summary">
+      <h2>The honest summary</h2>
+      <div class="summary-block">
+        <p>I did not design the compensation model at Brasil Paralelo. I inherited it, operationalized it, automated it, and when leadership wanted to change it I generated the evidence that made the decision possible. I grew with the system from 22 to 40 reps and built the infrastructure that would have allowed it to keep scaling.</p>
+        <p><strong>PostHog needs someone to do the same thing:</strong> take a compensation model that is well-designed but manually operated, build the infrastructure to run it at scale, and be the person who can model the implications of any proposed change before it ships. That is work I have done. The context is different. The operational thinking is the same.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <span>PostHog RevOps Field Study — <a href="https://github.com/dcherete/posthog-revops-case" target="_blank">github.com/dcherete/posthog-revops-case</a></span>
+  <span>Sources: <a href="https://posthog.com/handbook/growth/revops/overview" target="_blank">RevOps handbook</a> · <a href="https://posthog.com/handbook/growth/sales/how-we-work" target="_blank">Sales how we work</a></span>
+</footer>
+
+<script>
+  // Comparison table
+  const rows = [
+    { label: 'Team size',
+      bp: '22 sales reps, grew to 40 during the period.',
+      ph: 'Estimated 8 to 15 TAEs and TAMs based on public headcount and ARR milestones.',
+      detail: 'The scale difference matters for automation priority. At 22 reps, manual apuration is painful. At 40, it becomes a bottleneck. PostHog is earlier on that curve today, which means the window to build the right infrastructure is now, not after the pain becomes acute.' },
+    { label: 'Commission model',
+      bp: 'Tiered multipliers on revenue: 80% attainment at 2.5%, 100% at 5%, 130% at 7.5%.',
+      ph: 'Linear uncapped sliding scale on ARR growth, with cross-sell multiplier per product count (0.7x to 1.5x+).',
+      detail: 'Both models tie pay to performance with a multiplier structure. The PostHog model adds a cross-sell multiplier that creates a structural incentive for product breadth, but shares the same attribution ambiguity at its foundation: what counts as the rep\'s contribution?' },
+    { label: 'Apuration process',
+      bp: 'Approximately 4 hours per month, manual. Spreadsheets, exception reconciliation, payout generation per rep.',
+      ph: 'Manual, run by one person in Ops and Finance. No documented automation.',
+      detail: 'At Brasil Paralelo I rebuilt this in BigQuery: staging tables for targets and tiers, a transformation layer for attainment and commission, output that required 1 hour of exception review instead of 4 hours of calculation. The same rebuild is needed at PostHog, adapted for Salesforce as the system of record.' },
+    { label: 'Attainment visibility',
+      bp: 'Reps found out at month close. No mid-period signal available.',
+      ph: 'Reps find out when the quarterly commission email arrives.',
+      detail: 'The quarterly cycle compounds the problem PostHog reps face. A rep tracking to miss quota in week 6 of a 13-week quarter could still adjust behavior if they had the signal. Without a weekly attainment snapshot, the information arrives after the outcome is already fixed.' },
+    { label: 'Quota basis',
+      bp: 'Revenue generated by each rep in the month.',
+      ph: 'ARR invoiced (TAE) or ARR growth in book (TAM), measured quarterly.',
+      detail: 'The TAM quota basis is where the attribution problem lives. ARR growth in book includes organic growth the product would have driven anyway. The comp model does not separate rep-generated growth from product-generated growth. This is the hardest problem in the PostHog comp system and it has no equivalent at Brasil Paralelo.' },
+    { label: 'Ramp handling',
+      bp: 'New hires had scaled targets across three milestones: 50%, then 80%, then 100% of full quota.',
+      ph: 'First 3 months at 100% OTE fixed, per handbook. Ramp is protected via guaranteed salary rather than adjusted quota.',
+      detail: 'Both approaches protect new hires during ramp. The PostHog approach is simpler to administer but loses the performance signal during ramp. With adjusted quota, you can see whether a new hire is on track before the ramp period ends. With a fixed salary guarantee, that signal only appears after ramp closes.' },
+    { label: 'Model evolution',
+      bp: 'Moved from tiered multipliers to OTE structure. Required projecting historical data under the new model to justify the change before it went into production.',
+      ph: 'No documented evolution path. The current model may need adjustment as the team scales and PLG attribution becomes more complex.',
+      detail: 'The pattern repeats: the model that works today will need adjustment as the team grows. The RevOps function needs to be able to project what any proposed change would have produced historically before it ships. Without that infrastructure, model changes are arguments. With it, they are decisions.' },
+  ];
+
+  const tbody = document.getElementById('compareBody');
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.label}</td><td>${r.bp}</td><td>${r.ph}</td>`;
+    const detailRow = document.createElement('tr');
+    detailRow.className = 'row-detail';
+    detailRow.innerHTML = `<td colspan="3">${r.detail}</td>`;
+    tr.addEventListener('click', () => {
+      const isOpen = tr.classList.contains('open');
+      tbody.querySelectorAll('tr:not(.row-detail)').forEach(t => t.classList.remove('open'));
+      tbody.querySelectorAll('.row-detail').forEach(d => d.classList.remove('visible'));
+      if (!isOpen) { tr.classList.add('open'); detailRow.classList.add('visible'); }
+    });
+    tbody.appendChild(tr);
+    tbody.appendChild(detailRow);
+  });
+
+  // Problems
+  const problems = [
+    {
+      label: 'Problem 1',
+      title: 'Manual apuration at scale',
+      teaser: 'The monthly commission close took 4 hours. That number was not the real problem.',
+      bp: `<p>When I started, the monthly apuration took approximately 4 hours. That number sounds manageable until you understand what those 4 hours were: pulling revenue data from three sources, matching every transaction to the rep who worked it, applying the correct multiplier tier, reconciling the exceptions (a refund that came in after close, a deal where two reps both claimed credit, a rep who transferred mid-month), and generating the payout breakdown for each of 22 people.</p>
+<p>The calculation was mechanical. The reconciliation required judgment: whose deal was this when the lead was shared? What happens when the sale reverses two days after month close? I spent the first month mapping every exception type that had ever occurred, then turning those judgment rules into explicit logic.</p>
+<p><strong>What I built:</strong> three BigQuery models. A staging layer for daily targets and tier thresholds. A fact layer that resolved four attribution cases in order of priority (transferred beats reassigned beats untracked beats original). A commission layer that applied the multiplier and output attainment and payout per rep, refreshed every 30 minutes in production. Apuration time dropped from 4 hours to 1. The 1 hour was spent reviewing the edge cases the model had flagged, not running calculations.</p>`,
+      ph: `<p>The compensation mechanics at PostHog are well-documented in the handbook: OTE split, sliding scale, cross-sell multiplier, clawback rules. What is not documented is how those mechanics get turned into a number that appears in someone's bank account each quarter.</p>
+<p>That process is currently manual, owned by one person in Ops and Finance, with no automation layer sitting between the Salesforce data and the quarterly commission email.</p>
+<p>At 8 to 15 reps, this is painful but survivable. At the scale implied by the $100M ARR target, it becomes a bottleneck. The time to build the infrastructure is before the pain forces it.</p>`,
+      solution: `<p>A Salesforce-connected attainment model that calculates quarterly commission per rep automatically, flags exceptions for human review, and generates the payout breakdown without manual calculation.</p>
+<p>The output is the same quarterly commission email that goes out today, produced in minutes instead of hours, with a full audit trail showing exactly how each number was derived. When a rep disputes their payout, the answer is a query result, not a spreadsheet walkthrough.</p>`
+    },
+    {
+      label: 'Problem 2',
+      title: 'No attainment visibility during the period',
+      teaser: 'Reps found out how they had performed at month close. By then there was nothing to do with the information.',
+      bp: `<p>The first version of the system I built was still a monthly apuration engine. It produced the right number at month close, but it did not give reps any signal during the month. The data existed. The calculation existed. There was just no mechanism to run it mid-cycle and surface the result to the people who needed it.</p>
+<p>The consequence showed up in behavior. Reps who were tracking behind had no way to know it until the number was final. Reps who were tracking ahead had no confirmation that their effort was reading correctly in the system. Leadership had no early warning when someone was going to miss, which meant the first conversation about underperformance happened after the quarter was closed.</p>
+<p><strong>What I built:</strong> the weekly attainment cadence that ran the apuration calculation at the end of each ISO week and surfaced running attainment per rep. Not a complex model: the same logic as the monthly apuration, applied to a rolling window. The value was not in the calculation. It was in the timing. Reps with three weeks left in a bad month had time to act. By the last week, they did not.</p>`,
+      ph: `<p>The quarterly compensation cycle at PostHog compounds the visibility problem significantly. A TAE or TAM tracking to miss quota in week 6 of a 13-week quarter still has more than half the quarter left to change outcomes. But without a weekly attainment snapshot, that rep does not know they are in trouble until the quarter closes.</p>
+<p>The handbook documents a performance floor at 70% attainment over two consecutive quarters. Catching a rep before they cross that threshold requires knowing where they are in real time, not after the fact.</p>`,
+      solution: `<p>A weekly attainment snapshot per rep: current attainment percentage, open pipeline value relative to remaining quota, projected end-of-quarter payout at current trajectory.</p>
+<p>This is a Salesforce report, not a new system. The data is already there. The missing piece is the cadence and the delivery mechanism that gets the number to each rep at the start of each week, before the week's decisions are made rather than after.</p>`
+    },
+    {
+      label: 'Problem 3',
+      title: 'Quota setting without a documented model',
+      teaser: 'The quota number existed. The model that produced it did not.',
+      bp: `<p>When I joined, quota was set by leadership based on judgment and prior year performance. That worked when the team was small and everyone in the room had context on every rep. As the team grew, the judgment became harder to defend. New reps asked why their number was what it was. Leadership struggled to answer in a way that felt consistent.</p>
+<p>I built the capacity model that gave the quota a derivable foundation: conversion rate per rep (separated by lead type), revenue per closed deal, average deal cycle length, and the 7-3-1 activity ratio that defined what a full week of work looked like at the rep level. The model produced a revenue projection per rep per month. Leadership added a 30% stretch target on top. The quota was now a number with a paper trail.</p>
+<p><strong>What changed:</strong> when the team grew from 22 to 40 reps, the model scaled with it. When we added product-specific SPIFs, the model showed what effect each incentive was likely to produce before it was announced. When we moved from tiered multipliers to OTE, the capacity model was the foundation for projecting what the change would mean in practice.</p>`,
+      ph: `<p>The PostHog handbook documents how commission is calculated once quota is set. It does not document how quota is determined. The relationship between OTE, average deal size, win rate, ramp status, and the resulting quarterly number is not made explicit anywhere in the public materials.</p>
+<p>At current team size, this is manageable. As the team scales and new reps start asking why their quota is what it is, the answer cannot be "we looked at your territory and made a call." It needs to be derivable from inputs that are visible and agreed upon.</p>`,
+      solution: `<p>A quota-setting model with three inputs: the top-down ARR target for the sales-led motion, the bottom-up capacity estimate per rep derived from average deal size and historical win rate, and a ramp adjustment for reps in their first quarter.</p>
+<p>The output is a quota per rep that leadership can defend because it can be traced back to observable numbers. When the model needs to change (new territory, new product focus, new team structure), the change is an input adjustment rather than a fresh judgment call each cycle.</p>`
+    },
+    {
+      label: 'Problem 4',
+      title: 'Justifying a model change',
+      teaser: 'When leadership wanted to move from tiered multipliers to OTE, the question was not whether to do it. The question was what it would cost.',
+      bp: `<p>The conversation started in a Monday planning meeting. The commercial director wanted to shift from tiered multipliers to an OTE structure, on the grounds that OTE was easier to explain to candidates and created a cleaner ramp experience. The concern in the room was real: would reps earn more or less under the new structure? Would the total compensation cost go up or down?</p>
+<p>I took the prior 12 months of commission data and ran it through the OTE model. For each rep, in each month, I calculated what their payout would have been under the new structure. I produced three outputs: payout per rep under each model side by side, total team compensation cost under each model by month, and the list of reps who would have earned materially more or less (the thresholds that would require conversation before the change was announced).</p>
+<p><strong>The result:</strong> leadership had the data to make the decision and the data to communicate it. The model change was announced with a concrete description of what it meant for each rep's expected earnings. No rep was surprised by a number they had not been prepared for. That is only possible if the historical projection exists before the announcement goes out.</p>`,
+      ph: `<p>The current PostHog compensation structure is well-calibrated for the current stage. But as the team grows and the PLG attribution problem becomes more acute, there will be pressure to adjust: adding accelerators for specific products, differentiating quota by account type, building in floors for low-attainment quarters, changing how the cross-sell multiplier applies.</p>
+<p>Each of those conversations will go better if the RevOps function can arrive with a projection: here is what the proposed change would have produced in the last four quarters, here is which reps would have been affected and by how much, here is the total cost delta.</p>`,
+      solution: `<p>A scenario model that takes any proposed change to the compensation structure (new tier thresholds, new multipliers, new quota basis) and projects its impact against historical attainment and payout data.</p>
+<p>This is the same thing I built at Brasil Paralelo before the move to OTE, adapted for the PostHog data model. The output is not a recommendation. It is the evidence that makes a recommendation possible to evaluate. Leadership decides. RevOps makes sure the decision is made with the right information in the room.</p>`
+    },
+  ];
+
+  const problemList = document.getElementById('problemList');
+  problems.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'problem-card';
+    card.innerHTML = `
+      <div class="problem-header">
+        <div class="problem-meta">
+          <div class="problem-label">${p.label}</div>
+          <div class="problem-title">${p.title}</div>
+          <div class="problem-teaser">${p.teaser}</div>
+        </div>
+        <div class="problem-expand">+</div>
+      </div>
+      <div class="problem-body">
+        <div class="problem-panel">
+          <div class="panel-label bp">Brasil Paralelo</div>
+          <div class="panel-text">${p.bp}</div>
+        </div>
+        <div class="problem-panel">
+          <div class="panel-label posthog">PostHog equivalent</div>
+          <div class="panel-text">${p.ph}</div>
+        </div>
+        <div class="problem-panel solution">
+          <div class="panel-label solution">What I would build</div>
+          <div class="panel-text">${p.solution}</div>
+        </div>
+      </div>`;
+    card.querySelector('.problem-header').addEventListener('click', () => card.classList.toggle('open'));
+    problemList.appendChild(card);
+  });
+
+  // Gaps
+  const gaps = [
+    {
+      title: 'B2B deal dynamics',
+      detail: 'At Brasil Paralelo, revenue was subscription-based and arrived in predictable monthly increments. At PostHog, the sales team manages individual B2B deals with cycles measured in weeks and deal sizes starting at $20K ARR. The attainment calculation follows the same logic in principle, but the data structure is different: deal stages, close probabilities, and the distinction between invoiced ARR and contracted ARR introduce complexity that did not exist in the subscription model I operated.'
+    },
+    {
+      title: 'PLG attribution: the problem without an equivalent',
+      detail: 'When a TAM closes an expansion with an account that was already growing at $800 per month via self-serve, how much of that growth is the rep\'s contribution? I have never had to answer this question in production. I have a framework for how I would approach it (quasi-experimental design, holdout groups, an attribution taxonomy in Salesforce that separates organic growth from rep-assisted growth) but I have not built or operated that framework. This is the hardest problem in the PostHog comp system and it will require internal data to calibrate in a way that my public analysis cannot replicate.'
+    },
+    {
+      title: 'Salesforce as the system of record',
+      detail: 'The compensation system I built at Brasil Paralelo ran on BigQuery with Looker Studio for reporting. PostHog uses Salesforce and Vitally. The logic transfers. The tools do not. I would need ramp time on Salesforce administration that I do not currently have, and the first weeks of any engagement would include understanding what data exists in the system, what is instrumented, and what needs to be built before any of the models above are possible.'
+    },
+  ];
+
+  const gapList = document.getElementById('gapList');
+  gaps.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'gap-card';
+    card.innerHTML = `
+      <div class="gap-header">
+        <div class="gap-title">${g.title}</div>
+        <div class="gap-icon">+</div>
+      </div>
+      <div class="gap-detail">${g.detail}</div>`;
+    card.addEventListener('click', () => card.classList.toggle('open'));
+    gapList.appendChild(card);
+  });
+
+  // Scrollspy
+  const sections = ['context','parallel','problems','gaps','summary'];
+  const links = {};
+  sections.forEach(id => { links[id] = document.querySelector(`#sideNav a[href="#${id}"]`); });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        sections.forEach(id => links[id] && links[id].classList.remove('active'));
+        links[e.target.id] && links[e.target.id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>
+</body>
+</html>
