@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Growth Review — PostHog RevOps Field Study</title>
+<style>
+  :root {
+    --bg: #13131a;
+    --surface: #1c1c27;
+    --surface-2: #22223a;
+    --border: #2a2a3d;
+    --border-accent: rgba(245,183,49,0.3);
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --accent: #f5b731;
+    --accent-dim: rgba(245,183,49,0.08);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.07);
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --mono: 'SF Mono','Fira Code',monospace;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --sidebar-w: 220px;
+    --content-max: 740px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7fa; --surface: #ffffff; --surface-2: #f0f0f5;
+      --border: #dddde8; --border-accent: rgba(180,120,0,0.3);
+      --text: #1a1a2e; --muted: #8888a8; --accent: #c98a00;
+      --accent-dim: rgba(180,120,0,0.08); --green: #16a34a;
+      --green-dim: rgba(22,163,74,0.07); --red: #dc2626;
+      --blue: #2563eb; --purple: #7c3aed;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f7fa; --surface: #ffffff; --surface-2: #f0f0f5;
+    --border: #dddde8; --border-accent: rgba(180,120,0,0.3);
+    --text: #1a1a2e; --muted: #8888a8; --accent: #c98a00;
+    --accent-dim: rgba(180,120,0,0.08); --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.07); --red: #dc2626;
+    --blue: #2563eb; --purple: #7c3aed;
+  }
+  :root[data-theme="dark"] {
+    --bg: #13131a; --surface: #1c1c27; --surface-2: #22223a;
+    --border: #2a2a3d; --border-accent: rgba(245,183,49,0.3);
+    --text: #e8e8f0; --muted: #6b6b8a; --accent: #f5b731;
+    --accent-dim: rgba(245,183,49,0.08); --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.07); --red: #f87171;
+    --blue: #60a5fa; --purple: #a78bfa;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.7; }
+
+  /* Hero */
+  .hero { border-bottom: 1px solid var(--border); padding: 48px 40px 40px; max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; }
+  .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; letter-spacing: -.02em; }
+  .hero p { color: var(--muted); max-width: 620px; font-size: 14px; }
+  .hero p strong { color: var(--text); }
+
+  /* Layout */
+  .page-body { display: flex; max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; padding: 0 40px; gap: 48px; align-items: flex-start; }
+
+  /* Sidebar */
+  .sidebar { width: var(--sidebar-w); flex-shrink: 0; position: sticky; top: 32px; padding-top: 48px; padding-bottom: 80px; }
+  .sidebar-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar nav a { display: block; font-size: 12px; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; transition: color .15s, border-color .15s, background .15s; line-height: 1.4; }
+  .sidebar nav a:hover { color: var(--text); background: var(--surface); }
+  .sidebar nav a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .sidebar-meta { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .sidebar-meta a { color: var(--accent); text-decoration: none; }
+
+  /* Content */
+  .content { flex: 1; min-width: 0; padding-bottom: 80px; }
+  section { padding-top: 48px; }
+  h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 .tag { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px; }
+  .section-intro { color: var(--muted); margin-bottom: 24px; max-width: 680px; font-size: 13px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin-top: 48px; }
+
+  /* Context block */
+  .context-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px 28px; margin-top: 24px; }
+  .context-block p { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .context-block p + p { margin-top: 12px; }
+  .context-block strong { color: var(--text); }
+  .context-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 20px; }
+  .stat { background: var(--surface-2); padding: 14px 16px; }
+  .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* Architecture nodes */
+  .arch-node { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+  .arch-node:hover, .arch-node.active { border-color: var(--accent); background: var(--accent-dim); }
+  .arch-node .node-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .arch-node.highlight .node-label { color: var(--accent); }
+  .arch-node .node-sub { font-size: 10px; color: var(--muted); line-height: 1.4; }
+  .node-detail { display: none; margin-top: 16px; padding: 16px 20px; background: var(--accent-dim); border: 1px solid var(--border-accent); border-radius: 8px; font-size: 13px; }
+  .node-detail.visible { display: block; }
+  .node-detail strong { color: var(--accent); display: block; margin-bottom: 6px; font-size: 11px; font-family: var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .node-detail p { color: var(--muted); line-height: 1.6; }
+  .node-detail code { font-family: var(--mono); color: var(--accent); font-size: 11px; background: rgba(245,183,49,.08); padding: 1px 5px; border-radius: 3px; }
+
+  /* Metrics */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 24px 0; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; cursor: pointer; transition: border-color .2s; position: relative; }
+  .metric-card:hover { border-color: var(--accent); }
+  .metric-card .cat { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; }
+  .metric-card .cat.pipeline { color: var(--blue); }
+  .metric-card .cat.conversion { color: var(--green); }
+  .metric-card .cat.revenue { color: var(--accent); }
+  .metric-card .cat.churn { color: var(--red); }
+  .metric-card .cat.attribution { color: var(--purple); }
+  .metric-card .metric-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .metric-card .metric-q { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .metric-card .metric-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .metric-card.open .metric-detail { display: block; }
+  .metric-card .expand-hint { position: absolute; top: 16px; right: 16px; font-size: 14px; color: var(--muted); transition: transform .2s; }
+  .metric-card.open .expand-hint { transform: rotate(45deg); color: var(--accent); }
+
+  /* Timeline */
+  .timeline { display: flex; gap: 0; margin: 24px 0; overflow-x: auto; padding-bottom: 8px; }
+  .timeline-item { flex: 1; min-width: 140px; position: relative; cursor: pointer; }
+  .timeline-item::before { content: ''; position: absolute; top: 20px; left: 50%; width: 100%; height: 1px; background: var(--border); }
+  .timeline-item:last-child::before { display: none; }
+  .timeline-dot { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 11px; font-weight: 700; color: var(--muted); position: relative; z-index: 1; transition: all .2s; }
+  .timeline-item:hover .timeline-dot, .timeline-item.active .timeline-dot { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .timeline-day { text-align: center; font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .timeline-action { text-align: center; font-size: 10px; color: var(--muted); line-height: 1.4; padding: 0 8px; }
+  .timeline-detail { display: none; margin-top: 20px; padding: 16px 20px; background: var(--accent-dim); border: 1px solid var(--border-accent); border-radius: 8px; font-size: 12px; color: var(--muted); }
+  .timeline-detail.visible { display: block; }
+  .timeline-detail strong { color: var(--text); display: block; margin-bottom: 8px; }
+  .timeline-detail ul { padding-left: 16px; }
+  .timeline-detail li { margin-bottom: 4px; }
+
+  /* Footer */
+  footer { max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; padding: 24px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); flex-wrap: wrap; gap: 8px; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* Mobile */
+  @media (max-width: 760px) {
+    .hero { padding: 28px 20px 24px; }
+    .page-body { flex-direction: column; padding: 0 20px; gap: 0; }
+    .sidebar { width: 100%; position: static; padding-top: 24px; padding-bottom: 0; border-bottom: 1px solid var(--border); }
+    .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .sidebar nav a { border-left: none; border-bottom: 2px solid transparent; border-radius: 4px; padding: 4px 10px; font-size: 11px; }
+    .sidebar nav a.active { border-bottom-color: var(--accent); }
+    .sidebar-divider, .sidebar-meta { display: none; }
+    .sidebar-label { margin-bottom: 10px; }
+    .context-stats { grid-template-columns: 1fr 1fr; }
+    footer { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="eyebrow">PostHog RevOps Field Study — Deliverable 01</div>
+  <h1>Monthly Growth Review</h1>
+  <p>A sales performance monitoring system built and operated in a previous role, connecting CRM, chat, transactions, and compensation into a single weekly decision loop. <strong>Click any element to expand details.</strong></p>
+</div>
+
+<div class="page-body">
+
+  <aside class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <nav id="sideNav">
+      <a href="#context">What I inherited</a>
+      <a href="#system">The system</a>
+      <a href="#pipeline">Pipeline stages</a>
+      <a href="#attribution">Attribution logic</a>
+      <a href="#metrics">14 metrics</a>
+      <a href="#cadence">Weekly cadence</a>
+      <a href="#comparison">Two businesses</a>
+      <a href="#problems">Five JD problems</a>
+      <a href="#build">What I would build</a>
+    </nav>
+    <hr class="sidebar-divider">
+    <div class="sidebar-meta">
+      Part of the <a href="https://github.com/dcherete/posthog-revops-case" target="_blank">PostHog RevOps field study</a>, built from public sources before applying for the Revenue Operations Manager role.
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- 0. CONTEXT -->
+    <section id="context">
+      <h2>What I inherited</h2>
+      <div class="context-block">
+        <p>When I joined Brasil Paralelo, the commercial team had 22 reps and no reporting infrastructure. Revenue performance was measured after the fact, at month close, by pulling data from three disconnected systems and assembling it manually. The question of which rep closed which deal was resolved in a spreadsheet. Reps found out how they had performed when the apuration email arrived.</p>
+        <p>The monthly growth review did not exist as a system. It existed as a recurring scramble that produced a number too late to act on.</p>
+        <p><strong>What you see below is what I built over approximately two years:</strong> a BigQuery attribution model connecting five data sources, a pipeline stage framework with SLA tracking, 14 operational metrics refreshed every 30 minutes, and a weekly cadence that turned all of it into a decision loop the commercial lead could actually run.</p>
+        <div class="context-stats">
+          <div class="stat"><div class="stat-value">5</div><div class="stat-label">Data sources integrated into one row per deal</div></div>
+          <div class="stat"><div class="stat-value">14</div><div class="stat-label">Operational metrics tracked weekly</div></div>
+          <div class="stat"><div class="stat-value">30min</div><div class="stat-label">Attribution model refresh cycle in production</div></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 1. ARCHITECTURE -->
+    <section id="system">
+      <h2>The system I built <span class="tag">Data architecture</span></h2>
+      <p class="section-intro">The core was a BigQuery attribution model connecting five data sources into a single row per deal, updated every 30 minutes in production. Click each node to understand what it contained and why it mattered.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:24px 0 0;">
+        <div class="arch-node" onclick="toggleNode('crm')">
+          <div class="node-label">Sales CRM</div>
+          <div class="node-sub">Deal stages · Rep assignment · Pipeline state</div>
+        </div>
+        <div class="arch-node" onclick="toggleNode('chat')">
+          <div class="node-label">Chat platform</div>
+          <div class="node-sub">Conversation history · Response times · Prospect interactions</div>
+        </div>
+        <div class="arch-node highlight" onclick="toggleNode('model')">
+          <div class="node-label">Attribution model</div>
+          <div class="node-sub">BigQuery · 30-min refresh · One row per deal</div>
+        </div>
+        <div class="arch-node" onclick="toggleNode('transactions')">
+          <div class="node-label">Transactions</div>
+          <div class="node-sub">Revenue data · Subscription cycles · Payment retries</div>
+        </div>
+        <div class="arch-node" onclick="toggleNode('dashboard')">
+          <div class="node-label">Dashboard layer</div>
+          <div class="node-sub">14 report sections · Weekly review input · Alert triggers</div>
+        </div>
+        <div class="arch-node" onclick="toggleNode('comp')">
+          <div class="node-label">Compensation model</div>
+          <div class="node-sub">Attainment per rep · Multiplier logic · Payout calculation</div>
+        </div>
+      </div>
+
+      <div id="detail-crm" class="node-detail"><strong>Sales CRM</strong><p>Every deal with its stage history, assigned rep, lead source, and close date. A deal could be created by one rep and closed by another; the attribution model resolved this via <code>QUALIFY ROW_NUMBER()</code> prioritizing exact email match before falling back to temporal proximity.</p></div>
+      <div id="detail-chat" class="node-detail"><strong>Chat platform</strong><p>Conversation history between reps and prospects, joined to CRM deals via prospect ID. A 2-hour lag was subtracted from card creation timestamps to handle Zapier processing delays; without this correction, early messages fell outside the join window.</p></div>
+      <div id="detail-model" class="node-detail"><strong>Attribution model: the core</strong><p>Resolved four transaction types in a single pass: <code>tracked</code> (rep captured at point of sale), <code>untracked</code> (no rep, assigned via lookup rules), <code>canceled assignment</code> (original rep removed and reassigned), <code>transferred</code> (deal moved between reps). Priority: transferred first, then canceled, then untracked, then original.</p></div>
+      <div id="detail-transactions" class="node-detail"><strong>Transaction system</strong><p>Revenue data from the billing system including subscription cycles and payment retries. A <code>cd_deal_of_cycle</code> field deduplicated retry charges; without this, a subscription with 3 payment attempts in one month appeared as 3 separate deals in the conversion rate denominator.</p></div>
+      <div id="detail-dashboard" class="node-detail"><strong>Dashboard layer</strong><p>14 report sections built on top of the attribution model, refreshed every 30 minutes. Each section answered a specific operational question for the commercial lead. The weekly review pulled from this system so every conversation was grounded in the same data everyone could verify.</p></div>
+      <div id="detail-comp" class="node-detail"><strong>Compensation model</strong><p>The final output of the pipeline. Attainment per rep per week, multiplier application, and commission calculation fed directly into the monthly apuration. The model automated what previously took 4 hours of manual work down to 1 hour of corrections review.</p></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 2. PIPELINE STAGES -->
+    <section id="pipeline">
+      <h2>Pipeline stages and SLA tracking <span class="tag">Click each stage</span></h2>
+      <p class="section-intro">Every deal progressed through five stages. We tracked average time in each stage and defined SLAs. Reps were accountable for moving the pipeline within defined windows. Deals past the SLA threshold without stage movement were flagged in the weekly planning meeting.</p>
+
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:24px 0 16px;">
+        <div class="arch-node" onclick="toggleNode('origin-list')" style="text-align:left; padding:16px 18px;">
+          <div class="node-label" style="font-size:13px; margin-bottom:6px;">List</div>
+          <div class="node-sub" style="font-size:12px; line-height:1.5;">CRM-selected leads for active outbound prospecting. Criteria: behavioral, transactional, and socioeconomic signals.</div>
+        </div>
+        <div class="arch-node" onclick="toggleNode('origin-sel')" style="text-align:left; padding:16px 18px;">
+          <div class="node-label" style="font-size:13px; margin-bottom:6px;">Selected</div>
+          <div class="node-sub" style="font-size:12px; line-height:1.5;">Inbound leads: site chat, failed transactions (denied, abandoned, expired), and approved transactions flagged for upsell.</div>
+        </div>
+      </div>
+      <div id="detail-origin-list" class="node-detail"><strong>List: outbound origin</strong><p>Leads from the CRM database based on behavioral signals (content engagement, platform activity), transactional signals (purchase history, churn date), and socioeconomic profile. These had a prior brand relationship. The rep was responsible for first contact.</p></div>
+      <div id="detail-origin-sel" class="node-detail"><strong>Selected: inbound origin</strong><p>Higher intent than List leads. Chat leads initiated contact via the website. Failed transactions had already tried to buy. Upsell-flagged accounts were existing customers identified for cross-sell or upgrade. These typically converted faster and at higher ticket.</p></div>
+
+      <div style="display:flex; align-items:center; gap:0; overflow-x:auto; margin:16px 0 12px; padding-bottom:4px;" id="pipelineStages"></div>
+      <div id="stage-detail" style="display:none; padding:16px 20px; background:var(--accent-dim); border:1px solid var(--border-accent); border-radius:8px; font-size:13px; color:var(--muted);"></div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:16px;">
+        <div style="background:var(--surface); border:1px solid var(--green); border-radius:8px; padding:14px 16px; text-align:center;">
+          <div style="font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--green); margin-bottom:6px;">Won</div>
+          <div style="font-size:12px; color:var(--muted);">Transaction confirmed. Rep receives attribution credit. Moves to compensation apuration.</div>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--red); border-radius:8px; padding:14px 16px; text-align:center;">
+          <div style="font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--red); margin-bottom:6px;">Lost</div>
+          <div style="font-size:12px; color:var(--muted);">Did not convert. Lost reason recorded. May re-enter pipeline in a future CRM cycle.</div>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 16px; text-align:center;">
+          <div style="font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Open</div>
+          <div style="font-size:12px; color:var(--muted);">In progress. Flagged if past SLA threshold without stage movement.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding:14px 18px; background:var(--surface); border-left:3px solid var(--accent); border-radius:0 6px 6px 0; font-size:12px; color:var(--muted);">
+        <strong style="color:var(--text); display:block; margin-bottom:4px;">Note on the commercial role</strong>
+        Marketing generated direct sales independently. The commercial team's primary function was upsell, expanding ticket value on top of what marketing already sold. This makes the commercial motion more similar to PostHog's TAM motion (expansion from existing customers) than to a traditional new business sales team.
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 3. ATTRIBUTION LOGIC -->
+    <section id="attribution">
+      <h2>Attribution logic <span class="tag">How rep credit is resolved at close</span></h2>
+      <p class="section-intro">When a deal closes, the system confirms which rep gets credit. The same customer may have interacted with multiple reps or CRM campaigns before buying. Click each scenario to see the resolution rule.</p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin:24px 0;" id="attributionScenarios"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 4. METRICS -->
+    <section id="metrics">
+      <h2>The 14 metrics I tracked <span class="tag">Click any metric to expand</span></h2>
+      <p class="section-intro">Each metric answered a specific operational question for the weekly planning meeting. Color indicates the category.</p>
+      <div class="metrics-grid" id="metricsGrid"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 5. CADENCE -->
+    <section id="cadence">
+      <h2>The weekly cadence <span class="tag">Click each day for detail</span></h2>
+      <p class="section-intro">Monday was the planning meeting. Tuesday through Thursday was execution. Friday was the results pull that fed the next Monday.</p>
+      <div class="timeline" id="timeline"></div>
+      <div id="timeline-detail" class="timeline-detail"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 6. TWO BUSINESSES -->
+    <section id="comparison">
+      <h2>Two different businesses, two different problems <span class="tag">Why the context matters</span></h2>
+      <p class="section-intro">The system above solved a specific problem in a specific context. Before mapping it to PostHog, it is worth being precise about what is structurally different, because the hardest problem in the PostHog comp model does not exist in the previous context at all.</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0 16px;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px;">
+          <div style="font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--muted); margin-bottom:16px;">Previous role — B2C subscription</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">TEAM SIZE</span><div style="color:var(--text);">22 to 40 reps. High volume, low ticket, daily closes.</div></div>
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">COMMERCIAL ROLE</span><div style="color:var(--text);">Upsell and ticket expansion on top of what marketing sold. No product-led motion in parallel.</div></div>
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">ATTRIBUTION QUESTION</span><div style="color:var(--text);">Which rep closed which deal when multiple reps touched the same lead?</div></div>
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">COMPENSATION QUESTION</span><div style="color:var(--text);">Did this rep generate this revenue? Answer: almost always yes. No product doing it in parallel.</div></div>
+          </div>
+        </div>
+        <div style="background:var(--surface); border:1px solid rgba(245,183,49,.2); border-radius:10px; padding:20px;">
+          <div style="font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--accent); margin-bottom:16px;">PostHog — B2B PLG</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">TEAM SIZE</span><div style="color:var(--text);">Estimated 8 to 15 TAEs and TAMs. Low volume, high ticket ($20K+ ARR min), quarterly cycles.</div></div>
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">COMMERCIAL ROLE</span><div style="color:var(--text);">TAMs expand accounts already paying via self-serve. The product closes roughly 50% of revenue with no rep involvement at all.</div></div>
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">ATTRIBUTION QUESTION</span><div style="color:var(--accent); font-weight:600;">Was it the rep or the product that drove this revenue? This question has no clean answer today.</div></div>
+            <div><span style="color:var(--muted); font-size:10px; font-family:var(--mono); display:block; margin-bottom:2px;">COMPENSATION QUESTION</span><div style="color:var(--accent); font-weight:600;">How much of the ARR a TAM closed would have arrived organically anyway? The current comp model does not separate these, and the job description explicitly names this as unsolved.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 7. JD PROBLEMS -->
+    <section id="problems">
+      <h2>The five problems the JD names <span class="tag">Click each to see the current gap</span></h2>
+      <p class="section-intro">These are not generic RevOps problems. They are the specific gaps PostHog is hiring to solve. Each one has a direct quote from the job description and a diagnosis of what is missing today.</p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin:24px 0;" id="jdProblems"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 8. WHAT I WOULD BUILD -->
+    <section id="build">
+      <h2>What I would build <span class="tag">Mapped to the five JD problems</span></h2>
+      <p class="section-intro">Each item maps to one or more of the five problems above. The monitoring layer that existed in the previous role is embedded here as part of the solution, not as a separate section.</p>
+      <div style="display:flex; flex-direction:column; gap:12px; margin:24px 0;" id="buildItems"></div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <span>PostHog RevOps Field Study — <a href="https://github.com/dcherete/posthog-revops-case" target="_blank">github.com/dcherete/posthog-revops-case</a></span>
+  <span>Sources: <a href="https://posthog.com/handbook/growth/revops/overview" target="_blank">RevOps handbook</a> · <a href="https://posthog.com/handbook/growth/sales/how-we-work" target="_blank">Sales how we work</a></span>
+</footer>
+
+<script>
+  function toggleNode(id) {
+    const detail = document.getElementById('detail-' + id);
+    const all = document.querySelectorAll('.node-detail');
+    all.forEach(d => { if (d !== detail) d.classList.remove('visible'); });
+    detail.classList.toggle('visible');
+  }
+
+  // Pipeline stages
+  const stages = [
+    { name: 'List / Selected', sub: 'Deal created', color: 'var(--blue)', detail: '<strong style="color:var(--text)">Deal origin</strong><br>A deal enters the CRM from one of two sources. List: CRM-selected leads for active outbound prospecting based on behavioral, transactional, and socioeconomic criteria. Selected: inbound leads from site chat, failed transactions, or accounts flagged for upsell. The rep does not choose their leads; the system assigns them.' },
+    { name: 'Attempt', sub: 'First message sent', color: 'var(--purple)', detail: '<strong style="color:var(--text)">Attempt: first contact</strong><br>The rep sent the first message. SLA: reps were expected to make first contact within a defined window after deal assignment. Deals past the SLA without moving here were flagged in the Monday planning meeting.' },
+    { name: 'Negotiation', sub: 'Lead responded', color: 'var(--accent)', detail: '<strong style="color:var(--text)">Negotiation: active conversation</strong><br>The lead responded. Most important stage transition because it required lead engagement, outside the rep\'s direct control. We tracked time between first message and first response, and response rate by list type. Low response rate indicated lead quality problems, not rep performance problems.' },
+    { name: 'Link Sent', sub: 'Purchase link sent', color: 'var(--green)', detail: '<strong style="color:var(--text)">Link Sent: offer presented</strong><br>The rep judged the lead ready and sent the purchase link. We tracked time from Negotiation to Link Sent. Reps who spent too long before presenting the offer were either over-nurturing or not reading buying signals.' },
+    { name: 'Won / Lost / Open', sub: 'Final status', color: 'var(--muted)', detail: '<strong style="color:var(--text)">Final status</strong><br>Won: transaction confirmed, rep gets credit. Lost: did not convert; lost reason recorded and tracked by stage (lost at Attempt vs Negotiation vs after Link Sent told different stories). Open: in progress, flagged if past SLA without movement.' },
+  ];
+
+  const stagesEl = document.getElementById('pipelineStages');
+  const stageDetail = document.getElementById('stage-detail');
+  stages.forEach((s, i) => {
+    const node = document.createElement('div');
+    node.style.cssText = `flex:1; min-width:120px; background:var(--surface); border:1px solid ${s.color}; border-radius:8px; padding:12px 10px; text-align:center; cursor:pointer; transition:all .2s;`;
+    node.innerHTML = `<div style="font-size:11px; font-weight:600; color:${s.color}; margin-bottom:3px;">${s.name}</div><div style="font-size:10px; color:var(--muted);">${s.sub}</div>`;
+    node.addEventListener('click', () => {
+      stageDetail.innerHTML = s.detail;
+      stageDetail.style.display = 'block';
+    });
+    stagesEl.appendChild(node);
+    if (i < stages.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.style.cssText = 'flex-shrink:0; padding:0 4px; display:flex; align-items:center;';
+      arrow.innerHTML = '<svg width="16" height="12" viewBox="0 0 16 12"><path d="M0 6 H10 M7 2 L12 6 L7 10" stroke="#2a2a3d" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>';
+      stagesEl.appendChild(arrow);
+    }
+  });
+
+  // Attribution scenarios
+  const scenarios = [
+    { priority: '1', color: 'var(--green)', title: 'Rep on transaction matches rep on CRM card', confidence: 'Highest', detail: 'Both systems agree: the rep who worked the deal is the same rep on the transaction. Clean case, no ambiguity. Resolved via exact email match in the QUALIFY window. Majority of well-maintained pipeline deals.' },
+    { priority: '2', color: 'var(--accent)', title: 'Different rep on transaction — CRM card rep takes priority', confidence: 'High', detail: 'Transaction shows a different rep than the card. Happens when a deal was transferred after transaction, or the original rep was removed. CRM card owner is the authoritative record; it represents the commercial relationship. CRM wins.' },
+    { priority: '3', color: 'var(--blue)', title: 'No rep on either — temporal proximity fallback', confidence: 'Medium', detail: 'No rep found via either method. Model assigns to the deal whose creation date is closest in time. Commercial deals have no upper time limit (some take months). Marketing-originated deals have a strict 7-day window.' },
+    { priority: '4', color: 'var(--muted)', title: 'No match found — unattributed revenue', confidence: 'Unattributed', detail: 'No deal in the CRM matches the transaction. Revenue recorded as unattributed. A high unattributed rate indicated CRM hygiene problems (deals not being created) or channel mix issues (revenue from channels where reps were not involved).' },
+  ];
+
+  const scenariosEl = document.getElementById('attributionScenarios');
+  scenarios.forEach(s => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 18px; cursor:pointer; transition:border-color .2s;';
+    el.innerHTML = `
+      <div style="display:grid; grid-template-columns:32px 1fr auto; align-items:center; gap:12px;">
+        <div style="width:28px;height:28px;border-radius:50%;border:1px solid ${s.color};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:${s.color};flex-shrink:0;">${s.priority}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">${s.title}</div>
+          <div style="font-size:11px;font-family:var(--mono);color:var(--muted);">Confidence: ${s.confidence}</div>
+        </div>
+        <div style="font-size:16px;color:var(--muted);transition:transform .2s;" class="exp-icon">+</div>
+      </div>
+      <div style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.6;" class="scen-detail">${s.detail}</div>
+    `;
+    el.addEventListener('click', () => {
+      const d = el.querySelector('.scen-detail');
+      const icon = el.querySelector('.exp-icon');
+      const open = d.style.display === 'block';
+      d.style.display = open ? 'none' : 'block';
+      icon.style.transform = open ? '' : 'rotate(45deg)';
+      icon.style.color = open ? 'var(--muted)' : 'var(--accent)';
+      el.style.borderColor = open ? 'var(--border)' : 'var(--border-accent)';
+    });
+    scenariosEl.appendChild(el);
+  });
+
+  // Metrics
+  const metrics = [
+    { cat: 'pipeline', name: 'Lead funnel by stage', q: 'Where are leads dropping out before closing?', detail: 'Tracked conversion at each stage: approached, responded, negotiated, won or lost. The stage where leads died told you whether the problem was rep activity, messaging quality, or deal structuring.' },
+    { cat: 'pipeline', name: 'Daily lead flow', q: 'Is the team getting enough volume to hit quota this week?', detail: 'A leading indicator for the week\'s revenue. If volume on Monday or Tuesday was below the historical rate needed to hit the weekly target, there was still time to act. By Thursday it is too late.' },
+    { cat: 'pipeline', name: 'Leads by source and list', q: 'Which lead sources are feeding the pipeline and at what volume?', detail: 'Segmented by origin: commercial (high-intent), marketing CRM (lower-intent), chat (inbound), specific lists. Volume per source determined resource allocation.' },
+    { cat: 'conversion', name: 'Conversion rate by rep', q: 'Which reps are above or below team average, and on which lead types?', detail: 'Separated commercial from marketing leads; blending them produces a meaningless rate. A rep with 20% on commercial and 8% on marketing needs different coaching than a rep with 12% flat.' },
+    { cat: 'conversion', name: 'Conversion by list type', q: 'Does lead quality differ by source?', detail: 'Different lists had radically different conversion rates. A list of recently-churned high-value customers might convert at 3x a cold retargeting list. This determined list prioritization for the following week.' },
+    { cat: 'conversion', name: 'Quantity vs conversion tradeoff', q: 'When volume goes up, does conversion hold or drop?', detail: 'Key quality check. If conversion dropped when volume increased, we were burning into lower-quality leads faster than the team could handle. The optimal dispatch rate balanced volume and quality.' },
+    { cat: 'revenue', name: 'Revenue per lead', q: 'Is the team closing the right deals or just the easy ones?', detail: 'A rep can have high conversion by cherry-picking low-value deals. Revenue per lead catches this. The connective tissue between pipeline activity and revenue outcome.' },
+    { cat: 'revenue', name: 'Upsell renewals', q: 'How much expansion revenue is coming from existing customers?', detail: 'Tracked separately from new business because the sales motion is different. Upsell requires understanding customer usage and timing, a different skill than closing cold deals.' },
+    { cat: 'revenue', name: 'Recovery renewals', q: 'How much churned revenue is being recovered?', detail: 'Customers who had previously cancelled and were brought back. Tracked separately to understand whether win-back efforts were worth the cost versus focusing that capacity on upsell.' },
+    { cat: 'revenue', name: 'Channel breakdown', q: 'Which channels are driving revenue and which are burning volume?', detail: 'Revenue attributed by channel: WhatsApp, email, in-app, paid ads, organic, direct. A channel with high volume and low revenue per conversion was wasting capacity.' },
+    { cat: 'attribution', name: 'Sales vs marketing overlap', q: 'When a customer buys, was it the rep or the CRM campaign that drove it?', detail: 'Rep interaction within the attribution window took priority over passive CRM exposure. Tracked the overlap rate to understand how much of commercial revenue was genuinely incremental versus marketing-driven.' },
+    { cat: 'attribution', name: 'Chat-originated deals', q: 'How many deals started in chat vs list vs inbound form?', detail: 'Chat-originated leads had different characteristics: lower initial intent but faster conversion when the rep engaged well. Tracking origin allowed separate coaching strategies by lead type.' },
+    { cat: 'attribution', name: 'CRM list performance', q: 'Which lists are producing revenue vs burning deliverability?', detail: 'Not all lists are equal. A high-quality list could convert at 5x a cold list but also exhaust faster. This metric determined dispatch frequency per list type. Burning a good list with too many touches degraded it permanently.' },
+    { cat: 'churn', name: 'Days to cancel after commercial interaction', q: 'Are commercial tactics producing short-tenure customers?', detail: 'The most uncomfortable metric. When a commercial interaction was immediately followed by a cancellation, it revealed the rep had pressured a customer already on their way out. Created accountability for interaction quality, not just whether a deal closed.' },
+  ];
+
+  const grid = document.getElementById('metricsGrid');
+  metrics.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'metric-card';
+    card.innerHTML = `<div class="cat ${m.cat}">${m.cat}</div><div class="metric-name">${m.name}</div><div class="metric-q">${m.q}</div><div class="metric-detail">${m.detail}</div><div class="expand-hint">+</div>`;
+    card.onclick = () => card.classList.toggle('open');
+    grid.appendChild(card);
+  });
+
+  // Timeline
+  const days = [
+    { day: 'Monday', short: 'M', action: 'Commercial planning meeting', detail: { title: 'Monday: commercial planning', items: ['Review of the prior week vs target and pacing', 'Actions for the week if below target: new lists, new products, tactical adjustments', 'Opportunities to explore: emerging segments, underperforming channels to fix or cut', 'Rep performance review: who is above target, who needs support?', 'Goal recalibration if needed based on pipeline reality'] } },
+    { day: 'Tue – Thu', short: '→', action: 'Execution: team works the plan', detail: { title: 'Tuesday to Thursday: execution only', items: ['No scheduled review meetings', 'Reps work the pipeline across all stages', 'CRM team dispatches lists and monitors delivery', 'Critical deviations escalated ad hoc; no waiting for next meeting'] } },
+    { day: 'Friday', short: 'F', action: 'Pull results of the week\'s actions', detail: { title: 'Friday: results pull', items: ['Pull results of each action defined on Monday: did the new list perform?', 'Identify what worked and what did not (input for Monday\'s review)', 'Flag anything needing attention before next week', 'Prepare Monday\'s agenda: updated pacing, action results, next week plan'] } },
+  ];
+
+  const timeline = document.getElementById('timeline');
+  const timelineDetail = document.getElementById('timeline-detail');
+  days.forEach((d, i) => {
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
+    item.innerHTML = `<div class="timeline-dot">${d.short}</div><div class="timeline-day">${d.day}</div><div class="timeline-action">${d.action}</div>`;
+    item.onclick = () => {
+      document.querySelectorAll('.timeline-item').forEach(t => t.classList.remove('active'));
+      item.classList.add('active');
+      timelineDetail.innerHTML = `<strong>${d.detail.title}</strong><ul>${d.detail.items.map(x => `<li>${x}</li>`).join('')}</ul>`;
+      timelineDetail.classList.add('visible');
+    };
+    timeline.appendChild(item);
+  });
+
+  // JD Problems
+  const jdProblems = [
+    { id: 'P1', color: 'var(--red)', title: 'Comp plans do not point at company revenue goals', jd: '"Design, model and maintain rep comp plans so incentives actually point at company revenue goals."', gap: 'The current comp model commissions TAMs on total ARR growth in their book, including growth that would have happened organically via product. A TAM who inherited a fast-growing self-serve account and did nothing gets the same quota credit as a TAM who actively drove expansion.' },
+    { id: 'P2', color: 'var(--red)', title: 'No real-time attainment visibility', jd: '"Give reps and leads live visibility into attainment throughout the quarter and flag proactively when someone is tracking behind."', gap: 'Reps discover their attainment when the quarterly commission email arrives. No dashboard, no mid-quarter signal, no alert when pipeline coverage is insufficient. By the time the problem is visible, there are weeks left in the quarter.' },
+    { id: 'P3', color: 'var(--accent)', title: 'No operating cadence for sales-led revenue', jd: '"Own the cadence end to end: prep, analysis, and a clear read on what\'s driving and blocking growth. Don\'t let signal wait for the monthly meetings."', gap: 'There is a marketing growth review run monthly. There is no equivalent for sales-led revenue. The Revenue Leader has no systematic weekly signal on which reps are gaining, which are losing, and what is driving the difference.' },
+    { id: 'P4', color: 'var(--accent)', title: 'No proactive pipeline monitoring', jd: '"Build alerting on the things that actually move sales-led revenue: deals slipping stages, forecast diverging from pacing, reps falling behind attainment, churn or expansion signals, ICP score outliers."', gap: 'No alerts exist. Problems are discovered in meetings, not before them. A deal sitting in the same Salesforce stage for 3 weeks, a rep whose pipeline coverage dropped below 2x quota: none of these surface automatically.' },
+    { id: 'P5', color: 'var(--blue)', title: 'ICP score not validated against revenue outcomes', jd: '"Work out what actually correlates with revenue vs what we\'ve assumed, e.g. whether our ICP score tracks real revenue outcomes."', gap: 'The ICP score is a 70-point firmographic model. The handbook says it "should" correlate with contract value, but there is no documented validation against actual ARR outcomes. The routing rules determining which accounts get a TAM are based on a hypothesis, not measured predictive power.' },
+  ];
+
+  const jdEl = document.getElementById('jdProblems');
+  jdProblems.forEach(p => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:var(--surface-2); border-radius:8px; padding:14px 16px; cursor:pointer; border-left:3px solid transparent; transition:all .2s;';
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:28px 1fr auto;align-items:start;gap:12px;">
+        <div style="width:26px;height:26px;border-radius:50%;border:1px solid ${p.color};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:${p.color};flex-shrink:0;margin-top:1px;">${p.id}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">${p.title}</div>
+          <div style="font-size:11px;font-style:italic;color:var(--muted);line-height:1.5;">${p.jd}</div>
+          <div style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.6;" class="jd-gap">${p.gap}</div>
+        </div>
+        <div style="font-size:16px;color:var(--muted);transition:transform .2s;margin-top:2px;" class="exp-icon">+</div>
+      </div>
+    `;
+    el.addEventListener('click', () => {
+      const gap = el.querySelector('.jd-gap');
+      const icon = el.querySelector('.exp-icon');
+      const open = gap.style.display === 'block';
+      gap.style.display = open ? 'none' : 'block';
+      icon.style.transform = open ? '' : 'rotate(45deg)';
+      icon.style.color = open ? 'var(--muted)' : 'var(--accent)';
+      el.style.borderLeftColor = open ? 'transparent' : p.color;
+    });
+    jdEl.appendChild(el);
+  });
+
+  // Build items
+  const buildItems = [
+    {
+      jd: 'P1 + P2', timeline: 'Days 1 to 30', title: 'Compensation operating model',
+      items: [
+        'Add a self-serve MRR baseline field to every Salesforce opportunity: record the account\'s monthly usage at the time of first rep touch. This is the denominator for measuring rep incrementality, the number that separates what the rep generated from what the product would have generated anyway.',
+        'Build the quota attainment calculation: (invoiced ARR times cross-sell multiplier) divided by quarterly quota. Automate as a Salesforce report refreshed daily.',
+        'Build commission projection per rep: current attainment times implied commission rate equals projected quarterly payout. Push to each rep weekly; no more waiting for the quarterly email.',
+        'Flag automatically when a rep\'s projected attainment is below 70% of quarterly target with 4 or more weeks remaining. The handbook defines 70% as the performance floor threshold; catch it early enough to act.',
+      ],
+    },
+    {
+      jd: 'P3', timeline: 'Days 15 to 45', title: 'Weekly sales-led growth review',
+      items: [
+        'Define the cadence: Monday prep pull, Tuesday lightweight async update to reps, Friday forward signal check for the Revenue Leader.',
+        'Build the weekly snapshot: attainment by rep vs prior week, new ARR vs expansion ARR by source, product mix per TAM book, top 3 accounts showing churn or expansion signals.',
+        'Separate the revenue categories: cold new business (TAE, account had no prior usage), PLG-assisted (TAE converts self-serve to annual), TAM expansion (existing account adds products or grows usage). Blending these produces a meaningless aggregate.',
+        'Add the startup roll-off view: accounts exiting the startup program are time-sensitive. Days to roll-off, current usage trajectory, assigned TAE, and whether first contact has been made.',
+      ],
+    },
+    {
+      jd: 'P4', timeline: 'Days 30 to 60', title: 'Proactive pipeline monitoring',
+      items: [
+        'Deal slipping stages: flag any opportunity that has not moved stage in 14 or more days. Route to the rep with a recommended next action. This is the Salesforce equivalent of the SLA tracking from the previous role.',
+        'Pipeline coverage below threshold: flag any rep whose weighted open pipeline is below 2x remaining quarterly quota. Route to Revenue Leader.',
+        'Forecast pacing divergence: compare week-over-week ARR closed against the quarterly run rate needed to hit quota. Flag when the gap exceeds 20%.',
+        'Expansion signal in Vitally: accounts showing 30% or more MRR growth month-over-month not yet assigned to a TAM. Route to assignment queue.',
+        'Churn signal in Vitally: accounts showing declining usage for 3 or more consecutive weeks. Route to assigned TAM for proactive outreach.',
+      ],
+    },
+    {
+      jd: 'P5', timeline: 'Month 2', title: 'ICP score validation experiment',
+      items: [
+        'Pull historical Salesforce data: ICP score at time of lead creation vs ARR realized at 6 and 12 months. Calculate conversion rate by score band (0 to 20, 21 to 40, 41 to 60, 61 to 70). If the score predicts revenue, conversion rates should increase monotonically.',
+        'If the score is not predictive: propose recalibration using logistic regression on historical conversion data. The 70-point model uses only firmographic signals; adding behavioral signals (products activated, MRR trajectory, Managed Warehouse connection) is the most likely source of lift.',
+        'Document the validation result and its implications: if accounts scoring below 20 convert at the same rate as accounts scoring 40 or above, the TAE manual review threshold is miscalibrated and reps are being asked to review leads the system should route automatically or discard.',
+      ],
+    },
+  ];
+
+  const buildEl = document.getElementById('buildItems');
+  buildItems.forEach(b => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;';
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;" class="bh">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--accent-dim);padding:3px 8px;border-radius:4px;white-space:nowrap;">JD ${b.jd}</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">${b.timeline}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${b.title}</div>
+        <div style="font-size:16px;color:var(--muted);transition:transform .2s;" class="bi">+</div>
+      </div>
+      <div style="display:none;padding:0 18px 16px;border-top:1px solid var(--border);" class="bd">
+        <ul style="padding-left:16px;margin-top:14px;display:flex;flex-direction:column;gap:10px;">
+          ${b.items.map(i => `<li style="font-size:12px;color:var(--muted);line-height:1.6;">${i}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+    el.querySelector('.bh').addEventListener('click', () => {
+      const d = el.querySelector('.bd');
+      const icon = el.querySelector('.bi');
+      const open = d.style.display === 'block';
+      d.style.display = open ? 'none' : 'block';
+      icon.style.transform = open ? '' : 'rotate(45deg)';
+      icon.style.color = open ? 'var(--muted)' : 'var(--accent)';
+    });
+    buildEl.appendChild(el);
+  });
+
+  // Scrollspy
+  const sections = ['context','system','pipeline','attribution','metrics','cadence','comparison','problems','build'];
+  const links = {};
+  sections.forEach(id => { links[id] = document.querySelector(`#sideNav a[href="#${id}"]`); });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        sections.forEach(id => links[id] && links[id].classList.remove('active'));
+        links[e.target.id] && links[e.target.id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>
+</body>
+</html>
