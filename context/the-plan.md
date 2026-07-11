@@ -80,14 +80,8 @@ Commits tell the real story of progress. Check the git history.
 > **Deliverable 01 — Monthly Growth Review** (`deliverables/01-monthly-growth-review/`)
 > A sales performance monitoring system built and operated at Brasil Paralelo. Connects CRM, chat, transactions, and compensation into a BigQuery attribution model refreshed every 30 minutes in production. Covers the 14 metrics tracked weekly, the pipeline stage framework, the weekly decision cadence, and a direct mapping to the five JD problems PostHog is hiring to solve. Includes the production dbt SQL (`dtm_seller_conversion_rate.sql`).
 
-> **Deliverable 02 — Alerting spec** (`deliverables/02-alerting-spec/`)
-> *(in progress)* A trigger catalog for proactive revenue monitoring mapped to PostHog's Salesforce and Vitally stack.
-
-> **Deliverable 03 — Compensation model** (`deliverables/03-compensation-model/`)
+> **Deliverable 02 — Compensation model** (`deliverables/02-compensation-model/`)
 > The commission pipeline built and automated at Brasil Paralelo: staging tables for rep targets and tier thresholds, fact tables for monthly revenue by rep, and a transformation layer applying multiplier logic and outputting attainment and payout per rep. Includes the production dbt SQL (`compensation-pipeline.sql`) and a case-by-case comparison of what existed before, what was built, and what the PostHog equivalent looks like today.
 
-> **Deliverable 04 — ICP score validation** (`deliverables/04-icp-validation/`)
-> *(in progress)* An experiment design to test whether PostHog's ICP score tracks revenue outcomes, and what to change if it does not.
-
-> **Deliverable 05 — Attribution and NRR** (`deliverables/05-attribution-and-nrr/`)
-> *(in progress)* A methodology for decomposing the split between self-serve and sales-led revenue and attributing NRR deltas.
+> **Deliverable 03 — ICP score validation** (`deliverables/03-icp-validation/`)
+> Propensity models built and validated against real revenue outcomes at Brasil Paralelo, mapped to PostHog's unvalidated ICP score problem. Includes the validation methodology SQL and an honest read on where the analogy holds and where it breaks.

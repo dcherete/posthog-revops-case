@@ -16,13 +16,9 @@ The `context/` folder holds the research behind the mapping: PostHog's product s
 
 1. **[Monthly Growth Review](deliverables/01-monthly-growth-review/)**: a sales performance monitoring system I built and operated at Brasil Paralelo. Connects CRM, chat, transactions, and compensation into a single attribution model refreshed every 30 minutes. Includes the production dbt SQL and an interactive breakdown of the 14 metrics, pipeline stage framework, and weekly decision cadence.
 
-2. **[Alerting spec](deliverables/02-alerting-spec/)**: *(in progress)* a trigger catalog for proactive revenue monitoring mapped to PostHog's Salesforce and Vitally stack.
+2. **[Compensation model](deliverables/02-compensation-model/)**: the commission pipeline I built at Brasil Paralelo, from staging tables through multiplier logic to automated payout calculation. Includes the production SQL and a case-by-case comparison of what existed before, what I built, and what the PostHog equivalent looks like today.
 
-3. **[Compensation model](deliverables/03-compensation-model/)**: the commission pipeline I built at Brasil Paralelo, from staging tables through multiplier logic to automated payout calculation. Includes the production SQL and a case-by-case comparison of what existed before, what I built, and what the PostHog equivalent looks like today.
-
-4. **[ICP score validation](deliverables/04-icp-validation/)**: *(in progress)* an experiment design to test whether PostHog's ICP score tracks revenue outcomes.
-
-5. **[Attribution & NRR](deliverables/05-attribution-and-nrr/)**: *(in progress)* a methodology for decomposing the split between self-serve and sales-led revenue and attributing NRR deltas.
+3. **[ICP score validation](deliverables/03-icp-validation/)**: propensity models built and validated against real revenue outcomes at Brasil Paralelo, mapped to PostHog's unvalidated ICP score problem. Includes the validation methodology SQL and an honest read on where the analogy holds and where it breaks.
 
 ## How to navigate
 
