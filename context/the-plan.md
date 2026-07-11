@@ -45,7 +45,7 @@ Commits tell the real story of progress. Check the git history.
 - [x] 06 — Understand ICP scoring model
   - [x] How the 70-point model is constructed in Salesforce
   - [x] What variables compose the score and their implied weights
-  - [ ] Whether the score has been validated against actual revenue outcomes
+  - [x] Whether the score has been validated against actual revenue outcomes (answer from public sources: it has not)
 
 - [x] 07 — Understand compensation structure
   - [x] OTE structure per role
@@ -58,46 +58,36 @@ Commits tell the real story of progress. Check the git history.
 
 ---
 
-- [ ] 08 — Model revenue and commission projections
-  - [ ] Estimate TAE and TAM quota ranges from public data and market benchmarks
-  - [ ] Build commission scenarios at 80%, 100%, 120%, 150% attainment
-  - [ ] Sensitivity analysis: what happens if deal size drops 30%, ramp extends, clawback rate rises
-  - [ ] Maturity curve: how OTE cost evolves quarter over quarter as reps move through ramp, stabilize, or are replaced — and whether the model reaches sustainable equilibrium or keeps escalating
-  - [ ] Does the current model incentivize the right behavior in a PLG context?
+- [x] 08 — Map the five core challenges and produce proposed solutions
+  - [x] Incentive misalignment in PLG attribution
+  - [x] Absence of real-time revenue visibility
+  - [x] No operating cadence for sales-led revenue
+  - [x] Unvalidated ICP score
+  - [x] Compensation as a single point of failure (manual, no automation)
 
-- [ ] 09 — Map the five core challenges
-  - [ ] Incentive misalignment in PLG attribution
-  - [ ] Absence of real-time revenue visibility
-  - [ ] Unvalidated assumptions about what drives revenue
-  - [ ] Attribution problem between product and rep
-  - [ ] Compensation as a single point of failure
+  > **Approach shift:** tasks 08-10 were originally scoped as speculative modeling exercises using synthetic data calibrated to PostHog's public anchors. The approach changed: rather than simulate what the work would look like, the deliverables show real systems built and operated at Brasil Paralelo, mapped to the specific gaps PostHog is hiring to solve. The five challenges above are addressed directly in the deliverables.
 
-- [ ] 10 — Produce analysis and proposed solution for each challenge
-  - [ ] Analytical framework per problem
-  - [ ] Proposed solution with explicit premises
-  - [ ] What data I would need internally to calibrate each solution
-  - [ ] Open questions that require internal access to resolve
-
-> **Context doc 4 — `revenue-and-compensation-model.md`**
-> Three-layer projection model: (1) cost per rep as a function of attainment; (2) total team revenue and compensation cost given rep count and attainment mix; (3) maturity curve showing OTE cost evolution over time. Critical analysis of whether the current incentive structure is aligned with PLG revenue goals. Five analytical frameworks with proposed solutions and honest open questions for each challenge.
+- [x] 09 — Produce deliverables grounded in real operational experience
+  - [x] Analytical framework per problem (documented in each deliverable HTML)
+  - [x] Proposed solution with explicit premises
+  - [x] Honest acknowledgment of what differs between the BP and PostHog contexts
+  - [x] Open questions that require internal access to resolve
 
 ---
 
 ## Deliverables
 
-The five deliverables are the public-facing work product of this study. Each one is built on top of the context docs above.
-
-> **Deliverable 01 — Monthly Growth Review mock** (`deliverables/01-monthly-growth-review/`)
-> The memo I would ship in month one. Gainers and losers, new vs. expansion revenue, leading indicators, and one decision recommendation. Includes the SQL that generates it. Built on the acquisition funnel and sales structure context docs.
+> **Deliverable 01 — Monthly Growth Review** (`deliverables/01-monthly-growth-review/`)
+> A sales performance monitoring system built and operated at Brasil Paralelo. Connects CRM, chat, transactions, and compensation into a BigQuery attribution model refreshed every 30 minutes in production. Covers the 14 metrics tracked weekly, the pipeline stage framework, the weekly decision cadence, and a direct mapping to the five JD problems PostHog is hiring to solve. Includes the production dbt SQL (`dtm_seller_conversion_rate.sql`).
 
 > **Deliverable 02 — Alerting spec** (`deliverables/02-alerting-spec/`)
-> A trigger catalog for proactive revenue monitoring. Each trigger defines signal, threshold, owner, recommended action, delivery channel, and false-positive control. With executable detection queries. Directly addresses the pipeline leakage and underperformance detection gaps identified in the sales structure doc.
+> *(in progress)* A trigger catalog for proactive revenue monitoring mapped to PostHog's Salesforce and Vitally stack.
 
 > **Deliverable 03 — Compensation model** (`deliverables/03-compensation-model/`)
-> Rep-level cost as a function of attainment, team-level scenarios at 80/100/120/150% attainment, sensitivity analysis, and a maturity curve of OTE cost over time. Built on top of context doc 3 and context doc 4.
+> The commission pipeline built and automated at Brasil Paralelo: staging tables for rep targets and tier thresholds, fact tables for monthly revenue by rep, and a transformation layer applying multiplier logic and outputting attainment and payout per rep. Includes the production dbt SQL (`compensation-pipeline.sql`) and a case-by-case comparison of what existed before, what was built, and what the PostHog equivalent looks like today.
 
 > **Deliverable 04 — ICP score validation** (`deliverables/04-icp-validation/`)
-> An experiment design to test whether the ICP score actually tracks revenue outcomes, and what to change if it doesn't. Addresses the open question from task 06.
+> *(in progress)* An experiment design to test whether PostHog's ICP score tracks revenue outcomes, and what to change if it does not.
 
 > **Deliverable 05 — Attribution and NRR** (`deliverables/05-attribution-and-nrr/`)
-> How demand splits between self-serve and sales-led, where attribution between product and rep breaks down, and a methodology for decomposing the deltas in NRR.
+> *(in progress)* A methodology for decomposing the split between self-serve and sales-led revenue and attributing NRR deltas.

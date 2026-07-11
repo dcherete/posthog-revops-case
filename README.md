@@ -1,34 +1,44 @@
 # PostHog RevOps Field Study
 
-This is an analysis of PostHog's sales-led revenue engine, built from public sources before applying to the [Revenue Ops Manager (sales focused)](https://posthog.com/careers/revenue-ops-manager-(sales-focused)) role.
+Built from public sources before applying to the [Revenue Operations Manager (sales focused)](https://posthog.com/careers/revenue-ops-manager-(sales-focused)) role.
 
-**If you only read one thing, read the [Monthly Growth Review mock](deliverables/01-monthly-growth-review/).** It's the closest thing to the actual work product this role ships every month.
+**Start with the [Monthly Growth Review](deliverables/01-monthly-growth-review/).** It is the most complete picture of how I work.
 
-## Why this exists
+## What this is
 
-I want this role. Rather than telling you I can do the job, I decided to do a version of it in public: reconstruct how PostHog generates and expands revenue, model the compensation machine, and design the monitoring layer. All of it using only the handbook, pricing pages, public team data, and disclosed financials.
+Rather than describing what I would do in this role, I am showing what I have already done in an analogous one.
 
-Everything here runs on synthetic data calibrated to PostHog's public anchors. Any number that isn't publicly sourced is declared inline, with the reasoning behind the estimate and a note on how much the conclusions depend on it.
+The deliverables below are real systems I built and operated at Brasil Paralelo, a Brazilian media and subscription company. Each one is presented as a case: what the problem was, what I built to solve it, and how the operational thinking maps to the specific gaps PostHog is hiring to address. The mapping is grounded in the public handbook and job description, not speculation.
+
+The `context/` folder holds the research behind the mapping: PostHog's product structure, acquisition funnel, sales motion, and compensation mechanics, all reconstructed from public sources.
 
 ## Deliverables
 
-1. **[Monthly Growth Review mock](deliverables/01-monthly-growth-review/)**: the memo I would ship in month one. Gainers and losers, new vs. expansion revenue, leading indicators, and one decision recommendation. Includes the SQL that generates it.
-2. **[Alerting spec](deliverables/02-alerting-spec/)**: a trigger catalog for proactive revenue monitoring. Each trigger defines signal, threshold, owner, recommended action, delivery channel, and false-positive control. With executable detection queries.
-3. **[Compensation model](deliverables/03-compensation-model/)**: rep-level cost as a function of attainment, team-level scenarios at 80/100/120/150% attainment, sensitivity analysis, and a maturity curve of OTE cost over time.
-4. **[ICP score validation](deliverables/04-icp-validation/)**: an experiment design to test whether the ICP score actually tracks revenue outcomes, and what to change if it doesn't.
-5. **[Attribution & NRR](deliverables/05-attribution-and-nrr/)**: how demand splits between self-serve and sales-led, where attribution between product and rep breaks down, and a methodology for decomposing the deltas in NRR.
+1. **[Monthly Growth Review](deliverables/01-monthly-growth-review/)**: a sales performance monitoring system I built and operated at Brasil Paralelo. Connects CRM, chat, transactions, and compensation into a single attribution model refreshed every 30 minutes. Includes the production dbt SQL and an interactive breakdown of the 14 metrics, pipeline stage framework, and weekly decision cadence.
+
+2. **[Alerting spec](deliverables/02-alerting-spec/)**: *(in progress)* a trigger catalog for proactive revenue monitoring mapped to PostHog's Salesforce and Vitally stack.
+
+3. **[Compensation model](deliverables/03-compensation-model/)**: the commission pipeline I built at Brasil Paralelo, from staging tables through multiplier logic to automated payout calculation. Includes the production SQL and a case-by-case comparison of what existed before, what I built, and what the PostHog equivalent looks like today.
+
+4. **[ICP score validation](deliverables/04-icp-validation/)**: *(in progress)* an experiment design to test whether PostHog's ICP score tracks revenue outcomes.
+
+5. **[Attribution & NRR](deliverables/05-attribution-and-nrr/)**: *(in progress)* a methodology for decomposing the split between self-serve and sales-led revenue and attributing NRR deltas.
 
 ## How to navigate
 
-Each deliverable in `deliverables/` stands alone. The `context/` folder holds the research that feeds them: product structure, acquisition funnel, sales structure and compensation mechanics, and the study plan. Start with a deliverable, go to `context/` when you want to see where a number came from.
-
-The commit history is the methodology. Each commit reflects a real study session.
+Each deliverable stands alone. Start with the interactive HTML page — it is the case. The SQL files alongside it are the production code the case is built on. Go to `context/` when you want to see where a number or assumption came from.
 
 ## About me
 
 I'm Davi, a Senior CRM Analyst with 4 years running CRM and revenue analytics at Brasil Paralelo, a Brazilian media and subscription company: a 6.2M-lead database, 800k active subscribers, 7 channels, R$64M in directly attributed CRM revenue, plus lead scoring models credited with another R$45.5M. Working stack: SQL, BigQuery, dbt, Python, Insider CDP. Statistics degree (UNESP).
 
 I'm based in Brazil (GMT-3), which gives me full overlap with GMT-5 working hours. For GMT-8 it means a 1pm to 9pm local schedule, and I'm glad to hold it.
+
+## A note on location
+
+The role is listed for GMT-5. I am in Brazil (GMT-3), two hours ahead. The working overlap is full and I already keep the schedule.
+
+I am not going to argue around the timezone constraint. What I can say is that PostHog is the only company I applied to this cycle, and this repository is the reason why. [The full context is here.](link)
 
 ## Status
 

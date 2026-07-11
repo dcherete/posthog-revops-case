@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICP Score Validation — PostHog RevOps Field Study</title>
+<style>
+  :root {
+    --bg: #13131a; --surface: #1c1c27; --surface-2: #22223a;
+    --border: #2a2a3d; --border-accent: rgba(245,183,49,0.3);
+    --text: #e8e8f0; --muted: #6b6b8a; --accent: #f5b731;
+    --accent-dim: rgba(245,183,49,0.08); --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.07); --red: #f87171;
+    --blue: #60a5fa; --purple: #a78bfa;
+    --mono: 'SF Mono','Fira Code',monospace;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --sidebar-w: 220px; --content-max: 740px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f7fa; --surface: #ffffff; --surface-2: #f0f0f5;
+      --border: #dddde8; --border-accent: rgba(180,120,0,0.3);
+      --text: #1a1a2e; --muted: #8888a8; --accent: #c98a00;
+      --accent-dim: rgba(180,120,0,0.08); --green: #16a34a;
+      --green-dim: rgba(22,163,74,0.07); --red: #dc2626;
+      --blue: #2563eb; --purple: #7c3aed;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f7fa; --surface: #ffffff; --surface-2: #f0f0f5;
+    --border: #dddde8; --border-accent: rgba(180,120,0,0.3);
+    --text: #1a1a2e; --muted: #8888a8; --accent: #c98a00;
+    --accent-dim: rgba(180,120,0,0.08); --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.07); --red: #dc2626;
+    --blue: #2563eb; --purple: #7c3aed;
+  }
+  :root[data-theme="dark"] {
+    --bg: #13131a; --surface: #1c1c27; --surface-2: #22223a;
+    --border: #2a2a3d; --border-accent: rgba(245,183,49,0.3);
+    --text: #e8e8f0; --muted: #6b6b8a; --accent: #f5b731;
+    --accent-dim: rgba(245,183,49,0.08); --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.07); --red: #f87171;
+    --blue: #60a5fa; --purple: #a78bfa;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.7; }
+
+  .hero { border-bottom: 1px solid var(--border); padding: 48px 40px 40px; max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; }
+  .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; letter-spacing: -.02em; }
+  .hero p { color: var(--muted); max-width: 620px; font-size: 14px; }
+  .hero p strong { color: var(--text); }
+
+  .page-body { display: flex; max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; padding: 0 40px; gap: 48px; align-items: flex-start; }
+
+  .sidebar { width: var(--sidebar-w); flex-shrink: 0; position: sticky; top: 32px; padding-top: 48px; padding-bottom: 80px; }
+  .sidebar-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar nav a { display: block; font-size: 12px; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; transition: color .15s, border-color .15s, background .15s; line-height: 1.4; }
+  .sidebar nav a:hover { color: var(--text); background: var(--surface); }
+  .sidebar nav a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .sidebar-meta { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .sidebar-meta a { color: var(--accent); text-decoration: none; }
+
+  .content { flex: 1; min-width: 0; padding-bottom: 80px; }
+  section { padding-top: 48px; }
+  h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 .tag { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px; }
+  .section-intro { color: var(--muted); margin-bottom: 24px; max-width: 680px; font-size: 13px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin-top: 48px; }
+
+  .context-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px 28px; margin-top: 24px; }
+  .context-block p { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .context-block p + p { margin-top: 12px; }
+  .context-block strong { color: var(--text); }
+  .context-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 20px; }
+  .stat { background: var(--surface-2); padding: 14px 16px; }
+  .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* Model cards */
+  .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+  .model-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; cursor: pointer; transition: border-color .2s; }
+  .model-card:hover { border-color: var(--accent); }
+  .model-card .model-tag { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .model-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .model-card .model-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .model-detail { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .model-card.open .model-detail { display: block; }
+  .model-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .model-metric { background: var(--surface-2); border-radius: 6px; padding: 10px 12px; }
+  .model-metric .mm-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .model-metric .mm-val { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  /* Methodology steps */
+  .steps { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; cursor: pointer; transition: border-color .2s; }
+  .step:hover { border-color: var(--border-accent); }
+  .step-header { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 12px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; color: var(--accent); flex-shrink: 0; }
+  .step-title { font-size: 13px; font-weight: 600; }
+  .step-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .step.open .step-body { display: block; }
+  .step-icon { font-size: 16px; color: var(--muted); transition: transform .2s; }
+  .step.open .step-icon { transform: rotate(45deg); color: var(--accent); }
+  code { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 1px 5px; border-radius: 3px; }
+
+  /* Score band table */
+  .band-table { margin-top: 24px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .band-row { display: grid; grid-template-columns: 130px 70px 90px 1fr 80px; align-items: center; gap: 0; border-bottom: 1px solid var(--border); }
+  .band-row:last-child { border-bottom: none; }
+  .band-row.header { background: var(--surface-2); }
+  .band-cell { padding: 12px 14px; font-size: 11px; }
+  .band-row.header .band-cell { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .band-name { font-weight: 600; font-size: 12px; }
+  .band-roi-bar { height: 6px; border-radius: 3px; margin-top: 4px; }
+  .band-decision { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .decision-deploy { color: var(--green); background: var(--green-dim); }
+  .decision-marginal { color: var(--accent); background: var(--accent-dim); }
+  .decision-no { color: var(--red); background: rgba(248,113,113,.07); }
+
+  /* Breakeven chart */
+  .breakeven-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-top: 24px; }
+  .breakeven-formula { font-family: var(--mono); font-size: 13px; color: var(--accent); background: var(--surface-2); border-radius: 6px; padding: 14px 18px; margin: 16px 0; text-align: center; letter-spacing: .02em; }
+  .breakeven-thresholds { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .threshold-card { border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+  .threshold-score { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .threshold-label { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* Comparison */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+  .compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .compare-card.posthog { border-color: rgba(245,183,49,.2); }
+  .compare-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .compare-card.posthog .compare-label { color: var(--accent); }
+  .compare-row { margin-bottom: 12px; }
+  .compare-row-label { font-size: 10px; font-family: var(--mono); text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .compare-row-val { font-size: 12px; color: var(--text); line-height: 1.5; }
+  .compare-row-val.gap { color: var(--accent); font-weight: 600; }
+
+  /* Gap items */
+  .gap-list { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+  .gap-item { background: var(--surface-2); border-radius: 8px; padding: 16px 18px; cursor: pointer; border-left: 3px solid transparent; transition: all .2s; }
+  .gap-item-header { display: grid; grid-template-columns: 28px 1fr auto; align-items: start; gap: 12px; }
+  .gap-id { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--red); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; color: var(--red); flex-shrink: 0; margin-top: 1px; }
+  .gap-title { font-size: 13px; font-weight: 600; }
+  .gap-body { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .gap-item.open .gap-body { display: block; }
+  .gap-icon { font-size: 16px; color: var(--muted); transition: transform .2s; margin-top: 2px; }
+  .gap-item.open .gap-icon { transform: rotate(45deg); color: var(--accent); }
+  .gap-item.open { border-left-color: var(--red); }
+
+  /* Build items */
+  .build-list { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+  .build-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .build-header { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; }
+  .build-jd { font-family: var(--mono); font-size: 9px; color: var(--accent); background: var(--accent-dim); padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+  .build-timeline { font-family: var(--mono); font-size: 9px; color: var(--muted); white-space: nowrap; }
+  .build-title { font-size: 13px; font-weight: 600; }
+  .build-icon { font-size: 16px; color: var(--muted); transition: transform .2s; }
+  .build-body { display: none; padding: 0 18px 16px; border-top: 1px solid var(--border); }
+  .build-body ul { padding-left: 16px; margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .build-body li { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  footer { max-width: calc(var(--sidebar-w) + var(--content-max) + 80px); margin: 0 auto; padding: 24px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); flex-wrap: wrap; gap: 8px; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .hero { padding: 28px 20px 24px; }
+    .page-body { flex-direction: column; padding: 0 20px; gap: 0; }
+    .sidebar { width: 100%; position: static; padding-top: 24px; padding-bottom: 0; border-bottom: 1px solid var(--border); }
+    .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .sidebar nav a { border-left: none; border-bottom: 2px solid transparent; border-radius: 4px; padding: 4px 10px; font-size: 11px; }
+    .sidebar nav a.active { border-bottom-color: var(--accent); }
+    .sidebar-divider, .sidebar-meta { display: none; }
+    .sidebar-label { margin-bottom: 10px; }
+    .model-grid { grid-template-columns: 1fr; }
+    .context-stats { grid-template-columns: 1fr 1fr; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .band-row { grid-template-columns: 110px 60px 80px 1fr; }
+    .band-row .band-cell:last-child { display: none; }
+    .breakeven-thresholds { grid-template-columns: 1fr; }
+    footer { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="eyebrow">PostHog RevOps Field Study — Deliverable 04</div>
+  <h1>ICP Score Validation</h1>
+  <p>A propensity score that has never been tested against real revenue outcomes is not a model. It is a policy. This is the validation methodology I built at Brasil Paralelo, and the experiment I would run to answer the same question for PostHog's ICP score. <strong>Click any element to expand details.</strong></p>
+</div>
+
+<div class="page-body">
+
+  <aside class="sidebar">
+    <div class="sidebar-label">On this page</div>
+    <nav id="sideNav">
+      <a href="#context">What I inherited</a>
+      <a href="#models">Two models</a>
+      <a href="#methodology">Validation method</a>
+      <a href="#results">Score band results</a>
+      <a href="#breakeven">Breakeven calibration</a>
+      <a href="#comparison">Two contexts</a>
+      <a href="#icp">PostHog ICP gap</a>
+      <a href="#build">Questions before solutions</a>
+      <a href="#expansion">Where it does transfer</a>
+    </nav>
+    <hr class="sidebar-divider">
+    <div class="sidebar-meta">
+      Part of the <a href="https://github.com/dcherete/posthog-revops-case" target="_blank">PostHog RevOps field study</a>, built from public sources before applying for the Revenue Operations Manager role.
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- 0. CONTEXT -->
+    <section id="context">
+      <h2>What I inherited</h2>
+      <div class="context-block">
+        <p>When I joined Brasil Paralelo's CRM team, the company had a database of over 6 million leads and 800 thousand active subscribers. Decisions about who to contact, when, and through which channel were based on intuition and list segmentation: recency, product category, campaign history. There was no score. No model. No way to know which segments were worth the channel cost and which were destroying value.</p>
+        <p>The first model I built was a resubscription propensity model for ex-members: churned subscribers with the highest probability of reactivating. The second was a lead score for non-members: people who had never subscribed but were statistically likely to convert with the right outreach.</p>
+        <p><strong>Both models were validated against real revenue outcomes before being deployed in production.</strong> This is not the standard practice. Most scores are deployed on the assumption that a higher score means a better lead. The validation work showed how wrong that assumption can be, and how expensive it is to act on an unvalidated score at scale.</p>
+        <div class="context-stats">
+          <div class="stat"><div class="stat-value">2</div><div class="stat-label">Production propensity models built and validated</div></div>
+          <div class="stat"><div class="stat-value">0.86</div><div class="stat-label">AUC on best model (NM v2.0, OOT April)</div></div>
+          <div class="stat"><div class="stat-value">+227%</div><div class="stat-label">ROI on top score band vs flat deployment</div></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 1. TWO MODELS -->
+    <section id="models">
+      <h2>Two models in production <span class="tag">Click each to expand</span></h2>
+      <p class="section-intro">Both models predict conversion probability using behavioral, transactional, and demographic signals. Both were validated out-of-time before any deployment decision was made.</p>
+      <div class="model-grid" id="modelGrid"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 2. METHODOLOGY -->
+    <section id="methodology">
+      <h2>The validation methodology <span class="tag">Four steps</span></h2>
+      <p class="section-intro">Validating a score means proving it predicts real revenue outcomes, not just that it separates the population into groups. Each step builds on the previous one.</p>
+      <div class="steps" id="stepsEl"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 3. RESULTS -->
+    <section id="results">
+      <h2>Score band results <span class="tag">EXM v6.6 — D1 experiment</span></h2>
+      <p class="section-intro">The validation ran as a controlled experiment: five score bands deployed simultaneously, each tracked independently. The result answered the question the model was built to answer: does a higher score mean higher return?</p>
+
+      <div class="band-table">
+        <div class="band-row header">
+          <div class="band-cell">Band</div>
+          <div class="band-cell">People</div>
+          <div class="band-cell">Conv. rate</div>
+          <div class="band-cell">ROI</div>
+          <div class="band-cell">Decision</div>
+        </div>
+        <div class="band-row" style="background:var(--surface);">
+          <div class="band-cell"><div class="band-name" style="color:var(--green);">A: Topscore</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);">score ≥ 0.053</div></div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;">10,516</div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;color:var(--green);">high</div>
+          <div class="band-cell"><div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green);">+227%</div><div class="band-roi-bar" style="width:100%;background:var(--green);opacity:.5;"></div><div style="font-size:10px;color:var(--muted);margin-top:3px;">RPM R$1,200</div></div>
+          <div class="band-cell"><span class="band-decision decision-deploy">Deploy</span></div>
+        </div>
+        <div class="band-row" style="background:var(--surface);">
+          <div class="band-cell"><div class="band-name" style="color:var(--accent);">B: Alto</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);">0.035 – 0.053</div></div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;">9,981</div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;color:var(--accent);">medium-high</div>
+          <div class="band-cell"><div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);">+36%</div><div class="band-roi-bar" style="width:45%;background:var(--accent);opacity:.5;"></div><div style="font-size:10px;color:var(--muted);margin-top:3px;">RPM R$497</div></div>
+          <div class="band-cell"><span class="band-decision decision-deploy">Deploy</span></div>
+        </div>
+        <div class="band-row" style="background:var(--surface);">
+          <div class="band-cell"><div class="band-name" style="color:var(--muted);">C: Médio</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);">0.024 – 0.035</div></div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;">19,380</div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;color:var(--muted);">medium</div>
+          <div class="band-cell"><div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--muted);">−2%</div><div class="band-roi-bar" style="width:5%;background:var(--muted);opacity:.3;"></div><div style="font-size:10px;color:var(--muted);margin-top:3px;">RPM R$359</div></div>
+          <div class="band-cell"><span class="band-decision decision-marginal">Marginal</span></div>
+        </div>
+        <div class="band-row" style="background:var(--surface);">
+          <div class="band-cell"><div class="band-name" style="color:var(--red);">D: Baixo</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);">0.017 – 0.024</div></div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;">16,091</div>
+          <div class="band-cell" style="font-family:var(--mono);font-size:12px;color:var(--red);">low</div>
+          <div class="band-cell"><div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--red);">−27%</div><div style="font-size:10px;color:var(--muted);margin-top:3px;">RPM R$269</div></div>
+          <div class="band-cell"><span class="band-decision decision-no">Do not deploy</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;padding:14px 18px;background:var(--surface);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;color:var(--muted);">
+        <strong style="color:var(--text);display:block;margin-bottom:4px;">What this means in practice</strong>
+        Without score validation, band D would have been deployed alongside band A. The model correctly identified that band D destroys value: every person reached in that band costs more than the revenue they generate. Deploying to bands A and B only — the validated decision — concentrates spend on the segment where the model is predictive and the economics are positive.
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 4. BREAKEVEN -->
+    <section id="breakeven">
+      <h2>Breakeven calibration <span class="tag">Finding the deployment threshold</span></h2>
+      <p class="section-intro">Once score bands are validated, the next question is where to draw the line. The breakeven threshold is the minimum score at which expected revenue covers the cost of reaching that person.</p>
+
+      <div class="breakeven-block">
+        <p style="font-size:13px;color:var(--muted);">The formula is straightforward. The hard part is knowing your true cost per person and your expected revenue per conversion — both require real data from prior campaigns, not assumptions.</p>
+        <div class="breakeven-formula">
+          breakeven score = cost per person / (avg ticket × delivery rate × conversion rate at threshold)
+        </div>
+        <p style="font-size:13px;color:var(--muted);">For the EXM v6.6 model, the cost per person was derived from platform and ops data from prior campaigns. Two thresholds were calculated:</p>
+        <div class="breakeven-thresholds">
+          <div class="threshold-card" style="border-color:var(--accent);background:var(--accent-dim);">
+            <div class="threshold-score">≥ 0.030</div>
+            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--accent);margin-top:4px;">Conservative deployment</div>
+            <div class="threshold-label">15,000 people in scope. Expected conversion: 6.3%. Validated as profitable at D1. Used for production deployment.</div>
+          </div>
+          <div class="threshold-card">
+            <div class="threshold-score">≥ 0.018</div>
+            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--muted);margin-top:4px;">Economic breakeven</div>
+            <div class="threshold-label">31,500 people in scope. Expected conversion: 4.2%. Profitable at D7 projection. Used to define maximum addressable pool.</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:14px 16px;background:var(--surface-2);border-radius:8px;font-size:12px;color:var(--muted);">
+          <strong style="color:var(--text);display:block;margin-bottom:4px;">Why two thresholds matter</strong>
+          The conservative threshold tells you where to deploy today. The economic breakeven tells you the size of the total addressable pool that the model can profitably serve — useful for capacity planning and for knowing when the model is getting close to exhausting its high-quality segment.
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 5. COMPARISON -->
+    <section id="comparison">
+      <h2>Two different scoring contexts <span class="tag">What transfers and what does not</span></h2>
+      <p class="section-intro">The methodology transfers directly. The data sources, outcome definition, and feedback loop are different. Being precise about these differences matters for designing the PostHog experiment correctly.</p>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="compare-label">Brasil Paralelo — B2C subscription</div>
+          <div class="compare-row"><div class="compare-row-label">Score inputs</div><div class="compare-row-val">Behavioral (CRM engagement, site sessions, content consumption), transactional (failed payments, churn date), demographic (income, region)</div></div>
+          <div class="compare-row"><div class="compare-row-label">Outcome definition</div><div class="compare-row-val">Resubscription within 7 days of first contact. Binary. Clear.</div></div>
+          <div class="compare-row"><div class="compare-row-label">Feedback loop</div><div class="compare-row-val">7 days to D1 result, 30 days to full signal. Fast iteration.</div></div>
+          <div class="compare-row"><div class="compare-row-label">Cost of a wrong threshold</div><div class="compare-row-val">Wasted channel spend at scale. Recoverable within one campaign cycle.</div></div>
+        </div>
+        <div class="compare-card posthog">
+          <div class="compare-label">PostHog — B2B PLG</div>
+          <div class="compare-row"><div class="compare-row-label">Score inputs</div><div class="compare-row-val">Firmographic only: company size, industry, estimated revenue. No behavioral signals from product usage.</div></div>
+          <div class="compare-row"><div class="compare-row-label">Outcome definition</div><div class="compare-row-val">ARR invoiced at 6 and 12 months. Continuous, not binary. Must be defined before the experiment runs.</div></div>
+          <div class="compare-row"><div class="compare-row-label">Feedback loop</div><div class="compare-row-val">6 to 12 months to meaningful revenue signal. Slower iteration, higher stakes per decision.</div></div>
+          <div class="compare-row"><div class="compare-row-label">Cost of a wrong threshold</div><div class="compare-row-val gap">TAM time misallocated for 12+ months on accounts that would have grown self-serve anyway. Hard to recover.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 6. ICP GAP -->
+    <section id="icp">
+      <h2>The PostHog ICP score gap <span class="tag">Click each to expand</span></h2>
+      <p class="section-intro">PostHog's ICP score is a 70-point firmographic model used to route accounts to TAEs and TAMs. The handbook documents how the score is constructed but not whether it predicts revenue. These are the four specific gaps.</p>
+      <div class="gap-list" id="gapList"></div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 7. QUESTIONS -->
+    <section id="build">
+      <h2>Questions before solutions</h2>
+      <p class="section-intro">Três perguntas determinam o instrumento certo.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">How does PostHog define incremental ARR?</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7;">An account growing from $8K to $30K with a TAM involved may have arrived there with or without the rep. Without a committed definition of what counts as TAM contribution versus organic product growth, any analysis of the ICP score is reinterpretable after the result appears.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">What is the historical volume in Salesforce?</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7;">The volume of accounts with 12 months of observed ARR determines the method. With few cases, ML is not the right instrument.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 22px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Does Vitally have point-in-time behavioral data?</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7;">For a retrospective analysis to be valid, signals like products activated and MRR trajectory would need to be available as they were at the moment of first rep touch, not as they are today.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;padding:14px 18px;background:var(--surface-2);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.7;">
+        This deliverable shows what I built. What PostHog needs to resolve the ICP problem depends on answers that only exist on the inside.
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- 8. EXPANSION -->
+    <section id="expansion">
+      <h2>Where prediction does transfer <span class="tag">Usage trajectory</span></h2>
+      <p class="section-intro">The ICP score problem is hard to validate because the outcome is slow and entangled with the product. There is a different prediction problem at PostHog where none of those constraints apply.</p>
+
+      <div style="background:var(--surface);border:1px solid var(--border-accent);border-radius:10px;padding:24px 28px;margin-top:24px;">
+        <p style="font-size:13px;color:var(--muted);line-height:1.8;">PostHog is usage-based. Every product has a measurable limit: events ingested, session recordings, feature flag evaluations. Usage per account is observable week by week, directly from the billing system.</p>
+        <p style="font-size:13px;color:var(--muted);line-height:1.8;margin-top:12px;">The question is well-defined: given an account's current usage trajectory, when will they hit their plan limit? Accounts tracking to breach within 45 to 60 days are the signal. The TAM reaches out not with a generic upsell, but with a specific observation.</p>
+
+        <div style="background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:14px 18px;margin:20px 0;font-size:13px;color:var(--text);font-style:italic;">
+          "At your current growth rate, you will exceed your plan in August. Here is what we would recommend."
+        </div>
+
+        <p style="font-size:13px;color:var(--muted);line-height:1.8;">This transfers from the BP methodology because the three problems that made ICP validation hard do not apply here. The outcome is observable in weeks. There is no attribution question between rep and product. The data already exists in the billing system.</p>
+      </div>
+
+      <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="background:var(--surface-2);padding:12px 18px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);">What the model would need</div>
+        <div style="display:flex;flex-direction:column;gap:0;">
+          <div style="display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--border);">
+            <div style="padding:12px 18px;font-size:11px;font-family:var(--mono);color:var(--accent);border-right:1px solid var(--border);">Weekly usage per product</div>
+            <div style="padding:12px 18px;font-size:12px;color:var(--muted);">Events, recordings, flags — per account, per product, per week. Already tracked in PostHog's billing system.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--border);">
+            <div style="padding:12px 18px;font-size:11px;font-family:var(--mono);color:var(--accent);border-right:1px solid var(--border);">Growth rate and trend</div>
+            <div style="padding:12px 18px;font-size:12px;color:var(--muted);">Week-over-week change. Is usage accelerating, stable, or declining? Acceleration compresses time-to-limit faster than a flat trend.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--border);">
+            <div style="padding:12px 18px;font-size:11px;font-family:var(--mono);color:var(--accent);border-right:1px solid var(--border);">Plan limit per product</div>
+            <div style="padding:12px 18px;font-size:12px;color:var(--muted);">The ceiling for each account's current plan. Subtracting current usage gives headroom; dividing headroom by weekly growth gives weeks-to-limit.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:200px 1fr;">
+            <div style="padding:12px 18px;font-size:11px;font-family:var(--mono);color:var(--accent);border-right:1px solid var(--border);">TAM output</div>
+            <div style="padding:12px 18px;font-size:12px;color:var(--muted);">A ranked list of accounts by days-to-limit, with current plan, usage trajectory, and recommended next plan. Refreshed weekly. The conversation writes itself.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <span>PostHog RevOps Field Study — <a href="https://github.com/dcherete/posthog-revops-case" target="_blank">github.com/dcherete/posthog-revops-case</a></span>
+  <span>Sources: <a href="https://posthog.com/handbook/growth/revops/overview" target="_blank">RevOps handbook</a> · <a href="https://posthog.com/handbook/growth/sales/how-we-work" target="_blank">Sales how we work</a></span>
+</footer>
+
+<script>
+  // Model cards
+  const models = [
+    {
+      tag: 'EXM v6.6 — Ex-member resubscription',
+      title: 'Propensity to resubscribe',
+      sub: 'LightGBM ensemble, 5 seeds, 71 features. Predicts which churned subscribers are most likely to reactivate within 7 days of a WhatsApp outreach.',
+      metrics: [
+        { label: 'AUC OOT May', val: '0.778' },
+        { label: 'AUC OOT Jun', val: '0.726' },
+        { label: 'Revenue lift vs prior model', val: '+35–53%' },
+        { label: 'Base eligible', val: '897K' },
+      ],
+      detail: 'Top features: days since last subscription (churn recency), last product held, engagement with CRM campaigns in prior 30 days, failed payment history. The model explicitly excludes acquisition funnel signals (UTM source, registration channel) to prevent circular features that inflate AUC but do not generalize to new contacts. Validated out-of-time on two months not seen during training before any production deployment.',
+    },
+    {
+      tag: 'NM v2.0 — Non-member lead score',
+      title: 'Propensity to convert (first purchase)',
+      sub: 'LightGBM, 11 training cutoffs, 4.3M eligible base. Predicts which leads who have never subscribed are most likely to make their first purchase.',
+      metrics: [
+        { label: 'AUC OOT Apr', val: '0.859' },
+        { label: 'AUC OOT May', val: '0.848' },
+        { label: 'Top 10% recall', val: '60.5%' },
+        { label: 'Top 5% lift', val: '9.8x' },
+      ],
+      detail: 'Top features: days since last failed transaction (strongest signal — someone who tried to buy and was declined is highly likely to try again), days since last CRM message, tenure since registration, site behavior (product page views, not cart — cart is circular), UTM at registration, CRM engagement rate. A critical lesson from v1.0: snapshot features (current income estimate, current optin status) leaked future information and produced a fake AUC of 0.997. All leaky features were identified and removed before v1.0 was considered valid.',
+    },
+  ];
+
+  const modelGrid = document.getElementById('modelGrid');
+  models.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'model-card';
+    card.innerHTML = `
+      <div class="model-tag">${m.tag}</div>
+      <h3>${m.title}</h3>
+      <div class="model-sub">${m.sub}</div>
+      <div class="model-detail">
+        <div class="model-metrics">${m.metrics.map(x => `<div class="model-metric"><div class="mm-label">${x.label}</div><div class="mm-val">${x.val}</div></div>`).join('')}</div>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.7;">${m.detail}</p>
+      </div>
+    `;
+    card.addEventListener('click', () => card.classList.toggle('open'));
+    modelGrid.appendChild(card);
+  });
+
+  // Steps
+  const steps = [
+    {
+      num: '01', title: 'Out-of-time (OOT) validation split',
+      body: 'The model is trained on months T-1 through T-N and tested on months T and T+1, which it has never seen. This is not the same as a random train/test split. A random split allows future information to leak into the training set because temporal order is broken. OOT validation tests whether the model generalizes to the future — which is the only test that matters for a deployed scoring system. A model with high training AUC and poor OOT AUC is overfit to historical patterns that no longer hold.'
+    },
+    {
+      num: '02', title: 'Lift curve and recall by score decile',
+      body: 'After OOT validation, the score is evaluated against actual outcomes by decile. The key question: does the top 10% of scores capture disproportionately more conversions than random? If the top decile accounts for 40-60% of conversions in the OOT period, the score has predictive power. If the lift curve is flat, the score is not separating the population meaningfully. AUC alone is not sufficient — a model can have AUC 0.75 and poor lift in the top decile, making it useless for targeting.'
+    },
+    {
+      num: '03', title: 'Revenue backtest against real outcomes',
+      body: 'AUC and lift are model metrics. Revenue is the business metric. The backtest joins the scored population to actual revenue outcomes and calculates revenue per person by score band. This answers a different question than AUC: not "does the score separate the population?" but "does a higher score mean more money?" A score can have good AUC and still fail the revenue backtest if high-scoring people convert at low ticket or churn quickly. The revenue backtest is what the band results table above represents.'
+    },
+    {
+      num: '04', title: 'Breakeven calibration and deployment decision',
+      body: 'Once revenue per score band is known, the final step is calibrating the deployment threshold. The breakeven threshold is the minimum score at which expected revenue covers the cost of reaching that person (channel cost, rep time, or whatever the relevant cost driver is). Deploying below the breakeven threshold destroys value at scale. The breakeven is not fixed — it shifts when costs change, when the audience mix changes, or when the model is retrained. It must be recalibrated after each significant change.'
+    },
+  ];
+
+  const stepsEl = document.getElementById('stepsEl');
+  steps.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'step';
+    el.innerHTML = `
+      <div class="step-header">
+        <div class="step-num">${s.num}</div>
+        <div class="step-title">${s.title}</div>
+        <div class="step-icon">+</div>
+      </div>
+      <div class="step-body">${s.body}</div>
+    `;
+    el.addEventListener('click', () => {
+      const open = el.classList.toggle('open');
+      el.querySelector('.step-icon').style.transform = open ? 'rotate(45deg)' : '';
+      el.querySelector('.step-icon').style.color = open ? 'var(--accent)' : 'var(--muted)';
+    });
+    stepsEl.appendChild(el);
+  });
+
+  // Gaps
+  const gaps = [
+    {
+      id: 'G1', title: 'The score uses only firmographic signals',
+      body: 'The 70-point ICP model is built from company size, industry, estimated revenue, and similar static firmographic data. It does not incorporate behavioral signals from the product: which products are activated, current MRR trajectory, number of seats, Managed Warehouse connection. These behavioral signals are available in Vitally and are likely to be far more predictive of expansion ARR than firmographic proxies. A company in the right industry with flat usage is a worse expansion candidate than a company in a marginal industry with rapidly growing usage.'
+    },
+    {
+      id: 'G2', title: 'No documented validation against ARR outcomes',
+      body: 'The handbook documents how the score is constructed and how it is used for routing decisions, but there is no documented analysis showing that accounts with higher ICP scores generate more ARR at 6 or 12 months. This means the routing thresholds (which ICP score gets a TAM, which goes to TAE manual review) are based on an assumption rather than a measurement. The assumption may be correct, but until it is tested, decisions made on it carry unquantified risk.'
+    },
+    {
+      id: 'G3', title: 'Routing thresholds are not calibrated to economics',
+      body: 'The ICP score determines whether an account gets routed to a TAE for manual review or left to self-serve. That routing decision has a cost (TAE time) and an expected return (incremental ARR vs what the account would have generated self-serve). Without a validated score and a breakeven calculation, the routing threshold is arbitrary. Accounts below the threshold may actually be worth the TAE time; accounts above it may not generate incremental ARR relative to what the product would have closed without any rep involvement.'
+    },
+    {
+      id: 'G4', title: 'No monitoring for score drift over time',
+      body: 'Even a well-validated score becomes stale. PostHog is adding products, expanding its ICP, and changing its pricing model. A firmographic model calibrated to one version of the ICP may not generalize to the next. Without periodic revalidation against current revenue outcomes, the score silently degrades while routing decisions continue to be made as if it were still accurate. The correct practice is to re-run the validation experiment annually and after any significant change to the go-to-market motion.'
+    },
+  ];
+
+  const gapList = document.getElementById('gapList');
+  gaps.forEach(g => {
+    const el = document.createElement('div');
+    el.className = 'gap-item';
+    el.innerHTML = `
+      <div class="gap-item-header">
+        <div class="gap-id">${g.id}</div>
+        <div class="gap-title">${g.title}</div>
+        <div class="gap-icon">+</div>
+      </div>
+      <div class="gap-body">${g.body}</div>
+    `;
+    el.addEventListener('click', () => {
+      const open = el.classList.toggle('open');
+      el.querySelector('.gap-icon').style.transform = open ? 'rotate(45deg)' : '';
+      el.querySelector('.gap-icon').style.color = open ? 'var(--accent)' : 'var(--muted)';
+    });
+    gapList.appendChild(el);
+  });
+
+  // Scrollspy
+  const sections = ['context','models','methodology','results','breakeven','comparison','icp','build','expansion'];
+  const links = {};
+  sections.forEach(id => { links[id] = document.querySelector(`#sideNav a[href="#${id}"]`); });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        sections.forEach(id => links[id] && links[id].classList.remove('active'));
+        links[e.target.id] && links[e.target.id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>
+</body>
+</html>
