@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Davi Cherete — Revenue Operations</title>
+<style>
+  /* --- Tokens --- */
+  :root {
+    --ink:      #0f0f18;
+    --ink-2:    #3e3e58;
+    --ink-3:    #8a8aac;
+    --rule:     #dddded;
+    --accent:   #16163c;
+    --page:     #ffffff;
+    --bg:       #eeeef5;
+  }
+
+  /* --- Reset --- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* --- Screen shell --- */
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 10.5px;
+    line-height: 1.6;
+    padding: 40px 20px 60px;
+  }
+
+  /* --- Paper card --- */
+  .paper {
+    background: var(--page);
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 52px 58px 60px;
+    box-shadow: 0 3px 40px rgba(16,16,50,.12);
+    border-top: 4px solid var(--accent);
+  }
+
+  /* --- Header --- */
+  .hd { margin-bottom: 22px; }
+
+  .hd-name {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 30px;
+    font-weight: normal;
+    letter-spacing: -.5px;
+    color: var(--accent);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+
+  .hd-title {
+    font-size: 10px;
+    color: var(--ink-2);
+    font-style: italic;
+    line-height: 1.65;
+    max-width: 540px;
+    margin-bottom: 14px;
+  }
+
+  .hd-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 0;
+    font-family: "Courier New", "Courier", monospace;
+    font-size: 9px;
+    color: var(--ink-3);
+  }
+
+  .hd-contact span,
+  .hd-contact a {
+    color: var(--ink-3);
+    text-decoration: none;
+  }
+
+  .hd-contact a:hover { color: var(--ink-2); }
+
+  .hd-contact .sep {
+    margin: 0 10px;
+    color: var(--rule);
+    font-style: normal;
+  }
+
+  .hd-case {
+    margin-top: 14px;
+    padding: 9px 13px;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    font-size: 9.5px;
+    color: var(--ink-2);
+    display: inline-block;
+    line-height: 1.5;
+  }
+
+  .hd-case a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .hd-case a:hover { text-decoration: underline; }
+
+  /* --- Section --- */
+  .section { margin-top: 22px; }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "Courier New", "Courier", monospace;
+    font-size: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: .22em;
+    color: var(--ink-3);
+    margin-bottom: 15px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  /* --- Job --- */
+  .job { margin-bottom: 16px; }
+  .job:last-child { margin-bottom: 0; }
+
+  .job-hd {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .job-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -.1px;
+  }
+
+  .job-dates {
+    font-family: "Courier New", "Courier", monospace;
+    font-size: 8.5px;
+    color: var(--ink-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .job-org {
+    font-size: 9.5px;
+    color: var(--ink-3);
+    font-style: italic;
+    margin-bottom: 7px;
+  }
+
+  .job ul {
+    padding-left: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .job li {
+    font-size: 10px;
+    color: var(--ink-2);
+    line-height: 1.6;
+    padding-left: 13px;
+    position: relative;
+  }
+
+  .job li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 4px;
+    height: 1px;
+    background: var(--ink-3);
+  }
+
+  .job li b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* --- Skills --- */
+  .skills {
+    font-size: 10px;
+    color: var(--ink-2);
+    line-height: 1.9;
+  }
+
+  .skills b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* --- Education --- */
+  .edu {
+    font-size: 10px;
+    color: var(--ink-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .edu b { color: var(--ink); font-weight: 600; }
+
+  .edu-right {
+    font-family: "Courier New", "Courier", monospace;
+    font-size: 8.5px;
+    color: var(--ink-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* --- Print --- */
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  @media print {
+    body { background: var(--page); padding: 0; }
+    .paper {
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+      box-shadow: none;
+      border-top: 3px solid var(--accent);
+    }
+    .hd-case { border-left-color: var(--accent); }
+    .job { page-break-inside: avoid; }
+    a { color: inherit !important; text-decoration: none !important; }
+  }
+
+  @media (max-width: 600px) {
+    .paper { padding: 32px 28px 40px; }
+    .job-hd { flex-direction: column; gap: 1px; }
+    .edu { flex-direction: column; gap: 2px; }
+  }
+</style>
+</head>
+<body>
+<div class="paper">
+
+<!-- ── HEADER ── -->
+<header class="hd">
+  <div class="hd-name">Davi Cherete</div>
+  <div class="hd-title">Senior analyst who built sales attribution, compensation automation, and growth monitoring from scratch for a 40-rep sales team, in SQL and dbt, without a dedicated RevOps function.</div>
+  <div class="hd-contact">
+    <span>dcherete@gmail.com</span>
+    <span class="sep">/</span>
+    <a href="https://linkedin.com/in/davi-cherete">linkedin.com/in/davi-cherete</a>
+    <span class="sep">/</span>
+    <span>São Paulo, Brazil (GMT-3)</span>
+  </div>
+  <div class="hd-case">
+    Field study for this application:&nbsp;&nbsp;<a href="https://dcherete.github.io/posthog-revops-case/">dcherete.github.io/posthog-revops-case</a>
+  </div>
+</header>
+
+<!-- ── EXPERIENCE ── -->
+<section class="section">
+  <div class="section-label">Experience</div>
+
+  <!-- Job 1 -->
+  <div class="job">
+    <div class="job-hd">
+      <div class="job-title">CRM Senior Analyst, Revenue Strategy</div>
+      <div class="job-dates">Sep 2023 &ndash; Present</div>
+    </div>
+    <div class="job-org">Brasil Paralelo, São Paulo</div>
+    <ul>
+      <li>CRM function accountable for <b>R$64M (~$11.6M USD) in directly attributed revenue</b> across 7 channels and 800K active subscribers.</li>
+      <li>Built and owns the <b>sales attribution system</b>: a 30-minute-refresh model connecting CRM, live chat, and transactions into a single authoritative record per deal. Resolved a persistent class of commission disputes that previously required manual adjudication each month-end.</li>
+      <li>Automated the full <b>commission pipeline</b>, cutting monthly close from 4 hours to 1 hour of exception review while the sales team grew from 22 to 40 reps. No spreadsheet dependencies.</li>
+      <li>Owns the <b>commercial growth monitoring cadence</b>: weekly pulse on leading indicators and monthly review covering pipeline health, stage adherence, and revenue performance.</li>
+      <li>Built a <b>GBM reactivation model</b> for lapsed subscribers via WhatsApp: raised conversion from 0.58% to 1.64% and revenue per lead from R$1.40 to R$4.52. Running since January 2026 at over <b>R$1M (~$180K USD) recovered per month</b>.</li>
+      <li>Designed and deployed <b>automated CRM journeys</b> that delivered R$1.55M (~$280K USD) incremental revenue in four months, with ROI growing from 450% to 759% over the period.</li>
+      <li>Renegotiated the <b>Insider CDP contract</b> (R$18M total): reduced monthly cost by 25.8% (R$794k to R$588k), restructured termination clauses, and cut the annual price adjustment from 15% to 5%.</li>
+      <li>Leads CRM roadmap across Marketing, Commercial, and Product as the function expanded from data delivery to campaign strategy and sales enablement.</li>
+    </ul>
+  </div>
+
+  <!-- Job 2 -->
+  <div class="job">
+    <div class="job-hd">
+      <div class="job-title">Sales Operations Analyst</div>
+      <div class="job-dates">Dec 2021 &ndash; Aug 2023</div>
+    </div>
+    <div class="job-org">Brasil Paralelo, São Paulo</div>
+    <ul>
+      <li>One of the first analytical hires. Built the corporate data warehouse (BigQuery and dbt Cloud) and master data layer that became the foundation for all subsequent analytics, CRM, and compensation work. Trained 2 analysts.</li>
+      <li>Built and deployed <b>3 propensity and lead scoring models</b> integrated via Pipedrive API, attributed to <b>R$45.5M (~$8M USD) in indirect revenue</b>. Models included ex-member reactivation scoring and non-member lead ranking, enabling the sales team to prioritize outreach by conversion likelihood.</li>
+      <li>Designed the <b>bidimensional RFM lifecycle framework</b>: 8 journey stages combining relational score (CRM engagement) and transactional score. Used for campaign targeting, cross-sell prioritization, and LTV monitoring across 800K subscribers.</li>
+      <li>Led the <b>CDP migration</b> from ActiveCampaign and Take Blip to Insider, expanding revenue channels from 2 to 7. Launched dynamic templates as the first new channel: <b>R$1.5M (~$270K USD) incremental revenue</b> in six months.</li>
+      <li>Built ETL pipelines in dbt and SQL; designed the A/B testing framework with statistical significance controls used across copy, segmentation, and journey variants.</li>
+    </ul>
+  </div>
+
+  <!-- Job 3 -->
+  <div class="job">
+    <div class="job-hd">
+      <div class="job-title">Marketing Analyst</div>
+      <div class="job-dates">Mar 2020 &ndash; Dec 2021</div>
+    </div>
+    <div class="job-org">Freelance</div>
+    <ul>
+      <li>Performance analysis, campaign tracking, and KPI frameworks for digital businesses.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ── SKILLS ── -->
+<section class="section">
+  <div class="section-label">Skills</div>
+  <div class="skills">
+    <b>Core:</b> SQL &middot; BigQuery &middot; dbt &middot; Python &middot; LightGBM / scikit-learn &middot; Statistics &middot; A/B testing<br>
+    <b>Tools:</b> Pipedrive &middot; Insider CDP &middot; Looker / Data Studio &middot; ActiveCampaign &middot; Power BI
+  </div>
+</section>
+
+<!-- ── EDUCATION ── -->
+<section class="section">
+  <div class="section-label">Education</div>
+  <div class="edu">
+    <span><b>Universidade Estadual Paulista (UNESP)</b>, Statistics</span>
+    <span class="edu-right">2017 &ndash; 2020</span>
+  </div>
+</section>
+
+</div><!-- /paper -->
+</body>
+</html>

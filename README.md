@@ -30,7 +30,7 @@ I'm Davi, a Senior CRM Analyst with 4 years running CRM and revenue analytics at
 
 I'm based in Brazil (GMT-3), which gives me full overlap with GMT-5 working hours. For GMT-8 it means a 1pm to 9pm local schedule, and I'm glad to hold it.
 
-[Resume →](resume.pdf)
+[Resume →](resume.html)
 
 ## A note on location
 
