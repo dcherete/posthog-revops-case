@@ -36,7 +36,7 @@ I'm based in Brazil (GMT-3), which gives me full overlap with GMT-5 working hour
 
 The role is listed for GMT-5. I am in Brazil (GMT-3), two hours ahead. The working overlap is full and I already keep the schedule.
 
-I am not going to argue around the timezone constraint. What I can say is that PostHog is the only company I applied to this cycle, and this repository is the reason why. [The full context is here.](link)
+I am not going to argue around the timezone constraint. What I can say is that PostHog is the only company I applied to this cycle, and this repository is the reason why. [The full context is here.](context/why-posthog.md)
 
 ## Status
 
