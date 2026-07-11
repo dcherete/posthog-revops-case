@@ -22,13 +22,15 @@ The `context/` folder holds the research behind the mapping: PostHog's product s
 
 ## How to navigate
 
-Each deliverable stands alone. Start with the interactive HTML page — it is the case. The SQL files alongside it are the production code the case is built on. Go to `context/` when you want to see where a number or assumption came from.
+Each deliverable has an interactive HTML version published at `dcherete.github.io/posthog-revops-case/`. Start there. The SQL files in each folder are the production code the case is built on. Go to `context/` when you want to see where a number or assumption came from.
 
 ## About me
 
 I'm Davi, a Senior CRM Analyst with 4 years running CRM and revenue analytics at Brasil Paralelo, a Brazilian media and subscription company: a 6.2M-lead database, 800k active subscribers, 7 channels, R$64M in directly attributed CRM revenue, plus lead scoring models credited with another R$45.5M. Working stack: SQL, BigQuery, dbt, Python, Insider CDP. Statistics degree (UNESP).
 
 I'm based in Brazil (GMT-3), which gives me full overlap with GMT-5 working hours. For GMT-8 it means a 1pm to 9pm local schedule, and I'm glad to hold it.
+
+[Resume →](resume.pdf)
 
 ## A note on location
 
