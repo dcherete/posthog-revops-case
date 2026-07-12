@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostHog RevOps Field Study — Davi Cherete</title>
+<style>
+  :root {
+    --bg:        #13131a;
+    --surface:   #1c1c26;
+    --border:    #2a2a38;
+    --accent:    #f5b731;
+    --text:      #e4e4ec;
+    --text-2:    #8a8a9a;
+    --text-3:    #55556a;
+    --max:       720px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 72px 24px 96px;
+  }
+
+  .wrap {
+    max-width: var(--max);
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .hd {
+    margin-bottom: 64px;
+  }
+
+  .hd-label {
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .hd-name {
+    font-family: Georgia, serif;
+    font-size: 38px;
+    font-weight: normal;
+    color: var(--text);
+    letter-spacing: -.5px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    text-wrap: balance;
+  }
+
+  .hd-desc {
+    font-size: 15px;
+    color: var(--text-2);
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  .hd-desc a {
+    color: var(--text-2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .hd-desc a:hover { color: var(--text); }
+
+  /* ── Section label ── */
+  .section-label {
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Deliverables ── */
+  .deliverables {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 56px;
+  }
+
+  .dlv {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: start;
+    gap: 0 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: background .12s;
+    border-left: 3px solid transparent;
+    padding-left: 16px;
+    margin-left: -19px;
+  }
+
+  .dlv:hover {
+    border-left-color: var(--accent);
+    background: var(--surface);
+    padding-right: 16px;
+    margin-right: -16px;
+  }
+
+  .dlv-num {
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    padding-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dlv-body { min-width: 0; }
+
+  .dlv-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .dlv-desc {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+
+  .dlv-arrow {
+    font-size: 18px;
+    color: var(--text-3);
+    padding-top: 1px;
+    transition: color .12s, transform .12s;
+  }
+
+  .dlv:hover .dlv-arrow {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  /* ── Footer links ── */
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 0;
+  }
+
+  .flink {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    text-decoration: none;
+    color: var(--text-2);
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+    transition: color .12s;
+  }
+
+  .flink:hover { color: var(--text); }
+
+  .flink-icon {
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: var(--text-3);
+    width: 36px;
+    flex-shrink: 0;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 500px) {
+    body { padding: 48px 20px 72px; }
+    .hd-name { font-size: 28px; }
+    .dlv { grid-template-columns: 28px 1fr auto; gap: 0 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header class="hd">
+    <div class="hd-label">PostHog RevOps Field Study</div>
+    <h1 class="hd-name">Davi Cherete</h1>
+    <p class="hd-desc">
+      Rather than describing what I would do as Revenue Operations Manager, I am showing what I have already done in an analogous role. The deliverables below are real systems built and operated at Brasil Paralelo, mapped to the specific gaps PostHog is hiring to solve. Built from public sources before applying to the <a href="https://posthog.com/careers/revenue-ops-manager-(sales-focused)" target="_blank" rel="noopener">role</a>.
+    </p>
+  </header>
+
+  <!-- Deliverables -->
+  <div class="section-label">Deliverables</div>
+  <div class="deliverables">
+
+    <a class="dlv" href="deliverables/01-monthly-growth-review/monthly-growth-review.html">
+      <span class="dlv-num">01</span>
+      <div class="dlv-body">
+        <div class="dlv-title">Monthly Growth Review</div>
+        <div class="dlv-desc">Sales attribution model connecting CRM, chat, transactions, and compensation into a single record per deal, refreshed every 30 minutes. Covers the 14 metrics, pipeline stage framework, and weekly decision cadence.</div>
+      </div>
+      <span class="dlv-arrow">›</span>
+    </a>
+
+    <a class="dlv" href="deliverables/02-compensation-model/compensation-model.html">
+      <span class="dlv-num">02</span>
+      <div class="dlv-body">
+        <div class="dlv-title">Compensation Model</div>
+        <div class="dlv-desc">Commission pipeline from staging tables through multiplier logic to automated payout calculation. Reduced monthly apuration from 4 hours to 1 hour as the team scaled from 22 to 40 reps.</div>
+      </div>
+      <span class="dlv-arrow">›</span>
+    </a>
+
+    <a class="dlv" href="deliverables/03-icp-validation/icp-score-validation.html">
+      <span class="dlv-num">03</span>
+      <div class="dlv-body">
+        <div class="dlv-title">ICP Score Validation</div>
+        <div class="dlv-desc">Propensity models validated against real revenue outcomes, mapped to PostHog's unvalidated ICP score problem. Score band A delivered +227% ROI. Includes honest read on where the analogy holds and where it breaks.</div>
+      </div>
+      <span class="dlv-arrow">›</span>
+    </a>
+
+  </div>
+
+  <!-- Footer links -->
+  <div class="section-label">More</div>
+  <nav class="footer-links">
+    <a class="flink" href="resume.html">
+      <span class="flink-icon">CV</span>
+      Resume
+    </a>
+    <a class="flink" href="context/why-posthog.md">
+      <span class="flink-icon">CTX</span>
+      Why PostHog
+    </a>
+    <a class="flink" href="https://github.com/dcherete/posthog-revops-case" target="_blank" rel="noopener">
+      <span class="flink-icon">GH</span>
+      GitHub repository
+    </a>
+  </nav>
+
+</div>
+</body>
+</html>
